@@ -1,0 +1,136 @@
+{
+  "title": "Intel GPU",
+  "uid": "intel-gpu",
+  "schemaVersion": 39,
+  "version": 1,
+  "tags": ["intel", "gpu", "prometheus"],
+  "timezone": "browser",
+  "refresh": "30s",
+  "time": {"from": "now-1h", "to": "now"},
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {"text": "Prometheus", "value": "Prometheus"}
+      },
+      {
+        "name": "card",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "${datasource}"},
+        "query": "label_values(intel_gpu_info, card)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "current": {"selected": true, "text": "All", "value": "$__all"}
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "table",
+      "title": "GPU inventory",
+      "gridPos": {"x": 0, "y": 0, "w": 24, "h": 5},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {"refId": "A", "expr": "intel_gpu_info{card=~\"$card\"}", "format": "table", "instant": true}
+      ],
+      "transformations": [
+        {"id": "organize", "options": {"excludeByName": {"Time": true, "Value": true, "__name__": true, "job": true, "instance": true}}}
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "GT frequency (actual vs requested)",
+      "gridPos": {"x": 0, "y": 5, "w": 12, "h": 8},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {"defaults": {"unit": "MHz"}},
+      "targets": [
+        {"refId": "A", "expr": "intel_gpu_i915_frequency_actual_mhz{card=~\"$card\"}", "legendFormat": "{{card}}/{{gt}} actual (i915)"},
+        {"refId": "B", "expr": "intel_gpu_i915_frequency_requested_mhz{card=~\"$card\"}", "legendFormat": "{{card}}/{{gt}} requested (i915)"},
+        {"refId": "C", "expr": "intel_gpu_xe_frequency_actual_mhz{card=~\"$card\"}", "legendFormat": "{{card}}/t{{tile}}g{{gt}} actual (xe)"},
+        {"refId": "D", "expr": "intel_gpu_xe_frequency_requested_mhz{card=~\"$card\"}", "legendFormat": "{{card}}/t{{tile}}g{{gt}} requested (xe)"}
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Power",
+      "gridPos": {"x": 12, "y": 5, "w": 12, "h": 8},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {"defaults": {"unit": "watt"}},
+      "targets": [
+        {"refId": "A", "expr": "intel_gpu_hwmon_power_max_watts{card=~\"$card\"}", "legendFormat": "{{card}} ch{{channel}} PL1"},
+        {"refId": "B", "expr": "rate(intel_gpu_hwmon_energy_joules_total{card=~\"$card\"}[1m])", "legendFormat": "{{card}} ch{{channel}} actual"}
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Temperature",
+      "gridPos": {"x": 0, "y": 13, "w": 12, "h": 8},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {"defaults": {"unit": "celsius"}},
+      "targets": [
+        {"refId": "A", "expr": "intel_gpu_hwmon_temperature_celsius{card=~\"$card\"}", "legendFormat": "{{card}} ch{{channel}}"}
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Engine busy (PMU, % of wall time)",
+      "gridPos": {"x": 12, "y": 13, "w": 12, "h": 8},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {"defaults": {"unit": "percentunit", "min": 0, "max": 1}},
+      "targets": [
+        {"refId": "A", "expr": "rate(intel_gpu_pmu_counter{family=\"engine\",kind=\"busy\"}[1m]) / 1e9", "legendFormat": "{{pmu}} / {{engine}}"}
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "RC6 / C6 residency (% of wall time)",
+      "gridPos": {"x": 0, "y": 21, "w": 12, "h": 8},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {"defaults": {"unit": "percentunit", "min": 0, "max": 1}},
+      "targets": [
+        {"refId": "A", "expr": "rate(intel_gpu_pmu_counter{family=\"rc6\"}[1m]) / 1e9", "legendFormat": "{{pmu}}"}
+      ]
+    },
+    {
+      "id": 7,
+      "type": "table",
+      "title": "Top processes by GPU engine time (last 5m)",
+      "gridPos": {"x": 12, "y": 21, "w": 12, "h": 8},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {"refId": "A", "expr": "topk(20, sum by (pid, comm, engine) (rate(intel_gpu_client_engine_time_seconds_total[5m])))", "format": "table", "instant": true}
+      ]
+    },
+    {
+      "id": 8,
+      "type": "stat",
+      "title": "PCIe link",
+      "gridPos": {"x": 0, "y": 29, "w": 12, "h": 4},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {"defaults": {"unit": "none"}},
+      "targets": [
+        {"refId": "A", "expr": "intel_gpu_pcie_current_generation{card=~\"$card\"}", "legendFormat": "{{card}} gen"},
+        {"refId": "B", "expr": "intel_gpu_pcie_current_link_width{card=~\"$card\"}", "legendFormat": "{{card}} lanes"}
+      ]
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "xe throttle reasons",
+      "gridPos": {"x": 12, "y": 29, "w": 12, "h": 4},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {"refId": "A", "expr": "intel_gpu_xe_throttle_reason{card=~\"$card\"} > 0", "legendFormat": "{{card}} t{{tile}}g{{gt}} {{reason}}"}
+      ]
+    }
+  ]
+}
