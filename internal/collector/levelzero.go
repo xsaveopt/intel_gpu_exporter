@@ -28,22 +28,22 @@ type LevelZero struct {
 	log    *slog.Logger
 	client *levelzero.Client
 
-	energy        *prometheus.Desc
-	energyTS      *prometheus.Desc
-	temperature   *prometheus.Desc
-	freqActual    *prometheus.Desc
-	freqRequest   *prometheus.Desc
-	freqTDP       *prometheus.Desc
+	energy         *prometheus.Desc
+	energyTS       *prometheus.Desc
+	temperature    *prometheus.Desc
+	freqActual     *prometheus.Desc
+	freqRequest    *prometheus.Desc
+	freqTDP        *prometheus.Desc
 	freqThrottleNS *prometheus.Desc
-	engineActive  *prometheus.Desc
-	engineTS      *prometheus.Desc
-	rasError      *prometheus.Desc
-	memSize       *prometheus.Desc
-	memFree       *prometheus.Desc
-	memRead       *prometheus.Desc
-	memWrite      *prometheus.Desc
-	memMaxBW      *prometheus.Desc
-	memTS         *prometheus.Desc
+	engineActive   *prometheus.Desc
+	engineTS       *prometheus.Desc
+	rasError       *prometheus.Desc
+	memSize        *prometheus.Desc
+	memFree        *prometheus.Desc
+	memRead        *prometheus.Desc
+	memWrite       *prometheus.Desc
+	memMaxBW       *prometheus.Desc
+	memTS          *prometheus.Desc
 }
 
 func NewLevelZero(log *slog.Logger) *LevelZero {

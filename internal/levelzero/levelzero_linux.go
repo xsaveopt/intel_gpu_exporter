@@ -62,10 +62,10 @@ type RAS struct {
 }
 
 type Memory struct {
-	Handle      MemHandle
-	Type        string
-	OnSubdevice bool
-	SubdeviceID uint32
+	Handle       MemHandle
+	Type         string
+	OnSubdevice  bool
+	SubdeviceID  uint32
 	PhysicalSize uint64
 }
 

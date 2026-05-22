@@ -205,18 +205,18 @@ type freqThrottleTime struct {
 }
 
 type freqProperties struct {
-	Stype             uint32
-	_                 uint32
-	PNext             uintptr
-	Type              uint32
-	OnSubdevice       uint8
-	_                 [3]byte
-	SubdeviceID       uint32
-	CanControl        uint8
-	IsThrottleEvent   uint8
-	_                 [2]byte
-	Min               float64
-	Max               float64
+	Stype           uint32
+	_               uint32
+	PNext           uintptr
+	Type            uint32
+	OnSubdevice     uint8
+	_               [3]byte
+	SubdeviceID     uint32
+	CanControl      uint8
+	IsThrottleEvent uint8
+	_               [2]byte
+	Min             float64
+	Max             float64
 }
 
 type engineStats struct {
@@ -267,13 +267,13 @@ type memState struct {
 }
 
 type memBandwidth struct {
-	Stype         uint32
-	_             uint32
-	PNext         uintptr
-	ReadCounter   uint64
-	WriteCounter  uint64
-	MaxBandwidth  uint64
-	Timestamp     uint64
+	Stype        uint32
+	_            uint32
+	PNext        uintptr
+	ReadCounter  uint64
+	WriteCounter uint64
+	MaxBandwidth uint64
+	Timestamp    uint64
 }
 
 type memProperties struct {

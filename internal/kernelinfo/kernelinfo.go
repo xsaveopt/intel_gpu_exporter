@@ -126,7 +126,7 @@ type Feature struct {
 //   - drm/i915: Documentation/gpu/i915.rst + drivers/gpu/drm/i915/i915_pmu.c
 //   - drm/xe:   Documentation/gpu/xe/ + drivers/gpu/drm/xe/
 //   - hwmon ABI: Documentation/ABI/testing/sysfs-driver-intel-i915-hwmon
-//                Documentation/ABI/testing/sysfs-driver-intel-xe-hwmon
+//     Documentation/ABI/testing/sysfs-driver-intel-xe-hwmon
 //   - fdinfo:   Documentation/gpu/drm-usage-stats.rst
 var Matrix = []Feature{
 	// --- i915 ---
@@ -206,8 +206,8 @@ var Matrix = []Feature{
 	},
 	{
 		ID: "xe.hwmon.fan", Driver: DriverXe, Since: V(6, 12),
-		Summary:  "Xe hwmon fan tachometer",
-		Notes:    "discrete cards only",
+		Summary: "Xe hwmon fan tachometer",
+		Notes:   "discrete cards only",
 	},
 	{
 		ID: "xe.hwmon.temp", Driver: DriverXe, Since: V(6, 13),
@@ -217,9 +217,9 @@ var Matrix = []Feature{
 	},
 	{
 		ID: "xe.hwmon.temp_extras", Driver: DriverXe, Since: V(6, 20),
-		Summary:  "Xe additional temperatures: vRAM channels, memory controller, PCIe, shutdown limit",
-		Notes:    "Linux 6.20 / 7.0 merge window (early 2026) — not yet released",
-		Ref:      "phoronix.com/news/Linux-7.0-Intel-GPU-Temperature",
+		Summary: "Xe additional temperatures: vRAM channels, memory controller, PCIe, shutdown limit",
+		Notes:   "Linux 6.20 / 7.0 merge window (early 2026) — not yet released",
+		Ref:     "phoronix.com/news/Linux-7.0-Intel-GPU-Temperature",
 	},
 	{
 		ID: "xe.fdinfo.engine", Driver: DriverXe, Since: V(6, 8),

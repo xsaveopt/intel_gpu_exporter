@@ -19,13 +19,14 @@ import (
 // Reference: Documentation/gpu/drm-usage-stats.rst
 //
 // Keys of interest:
-//   drm-driver:    i915 | xe
-//   drm-pdev:      0000:00:02.0
-//   drm-client-id: <number>
-//   drm-engine-<name>:    <ns> ns       (cumulative)
-//   drm-total-<region>:   <bytes>
-//   drm-resident-<region>: <bytes>
-//   drm-shared-<region>:   <bytes>
+//
+//	drm-driver:    i915 | xe
+//	drm-pdev:      0000:00:02.0
+//	drm-client-id: <number>
+//	drm-engine-<name>:    <ns> ns       (cumulative)
+//	drm-total-<region>:   <bytes>
+//	drm-resident-<region>: <bytes>
+//	drm-shared-<region>:   <bytes>
 //
 // Cardinality control: a system with hundreds of GPU-using processes (game
 // engines, containers) would explode the active series count. We aggregate

@@ -26,12 +26,12 @@ import (
 type PCIe struct {
 	gpus []discovery.GPU
 
-	curSpeed  *prometheus.Desc
-	curWidth  *prometheus.Desc
-	maxSpeed  *prometheus.Desc
-	maxWidth  *prometheus.Desc
-	curGen    *prometheus.Desc
-	maxGen    *prometheus.Desc
+	curSpeed *prometheus.Desc
+	curWidth *prometheus.Desc
+	maxSpeed *prometheus.Desc
+	maxWidth *prometheus.Desc
+	curGen   *prometheus.Desc
+	maxGen   *prometheus.Desc
 }
 
 func NewPCIe(gpus []discovery.GPU) *PCIe {

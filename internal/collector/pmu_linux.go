@@ -27,8 +27,8 @@ import (
 //   - type           - the PERF_TYPE value to put in perf_event_attr.type
 //   - events/<name>  - a string like "event=0x01" or "config=0x...,gt=0"
 //   - format/<key>   - bit range like "config:0-7"  (tells us how to encode
-//                       each key=value pair from the events file into the
-//                       64-bit config word)
+//     each key=value pair from the events file into the
+//     64-bit config word)
 //
 // At startup we open one perf event fd per discovered event. On each scrape
 // we read the cumulative counter and emit a Prometheus metric. Counter
