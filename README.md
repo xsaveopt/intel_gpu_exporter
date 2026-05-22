@@ -59,7 +59,7 @@ Full breakdown of every emitted series and the kernel source feeding it: [docs/m
 | PMU             | `CAP_PERFMON` and `perf_event_paranoid <= 1`               |
 | Level Zero      | access to `/dev/dri/renderD*` (usually the `render` group) |
 
-The reference unit in [docs/systemd.md](docs/systemd.md) grants `CAP_PERFMON` + `CAP_SYS_ADMIN`, opens `/dev/dri` rw, and otherwise locks the process down (`NoNewPrivileges`, read-only `/sys` and `/proc`, no namespaces, syscall filter). Trim capabilities if you're not running PMU.
+The reference unit in [docs/systemd.md](docs/systemd.md) runs as a dedicated `intel-gpu-exporter` user with `SupplementaryGroups=render video` (so it can open `/dev/dri/*` without being added to those groups globally), grants `CAP_PERFMON` for PMU access, and otherwise locks the process down (`NoNewPrivileges`, read-only `/sys` and `/proc`, no namespaces, syscall filter, cgroup `DeviceAllow=/dev/dri rw`). Drop `CAP_PERFMON` if you're not running PMU.
 
 ## Flags
 
