@@ -178,7 +178,7 @@ func discoverPMUs() ([]pmuDevice, error) {
 	var pmus []pmuDevice
 	for _, e := range entries {
 		name := e.Name()
-		if !(name == "i915" || strings.HasPrefix(name, "i915_") || strings.HasPrefix(name, "xe_")) {
+		if name != "i915" && !strings.HasPrefix(name, "i915_") && !strings.HasPrefix(name, "xe_") {
 			continue
 		}
 		dev, err := loadPMU(filepath.Join(root, name), name)

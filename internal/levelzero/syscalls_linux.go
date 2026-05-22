@@ -47,10 +47,9 @@ type fnTable struct {
 }
 
 var (
-	loadOnce  sync.Once
-	loadErr   error
-	libHandle uintptr
-	fns       fnTable
+	loadOnce sync.Once
+	loadErr  error
+	fns      fnTable
 )
 
 // loadLibrary dlopens libze_loader and resolves every needed entry point.
@@ -67,10 +66,9 @@ func loadLibrary() error {
 			}
 		}
 		if err != nil {
-			loadErr = fmt.Errorf("%w: %v", errUnavailable, err)
+			loadErr = fmt.Errorf("%w: %w", errUnavailable, err)
 			return
 		}
-		libHandle = handle
 
 		bind := func(out interface{}, name string) {
 			if loadErr != nil {

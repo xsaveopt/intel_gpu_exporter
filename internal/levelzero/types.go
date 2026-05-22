@@ -178,11 +178,6 @@ type tempProperties struct {
 	_                       [4]byte
 }
 
-type freqRange struct {
-	Min float64
-	Max float64
-}
-
 type freqState struct {
 	Stype           uint32
 	_               uint32
