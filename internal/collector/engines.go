@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"slices"
 
 	"github.com/prometheus/client_golang/prometheus"
 
@@ -35,7 +36,7 @@ type Engines struct {
 
 func NewEngines(gpus []discovery.GPU) *Engines {
 	lbls := append(CommonLabels(), "engine", "class", "instance")
-	infoLbls := append(lbls, "capabilities", "known_capabilities")
+	infoLbls := append(slices.Clone(lbls), "capabilities", "known_capabilities")
 	mk := func(name, help string) *prometheus.Desc {
 		return prometheus.NewDesc(prometheus.BuildFQName(Namespace, "engine", name), help, lbls, nil)
 	}

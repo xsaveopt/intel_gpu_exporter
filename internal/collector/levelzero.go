@@ -47,8 +47,7 @@ type LevelZero struct {
 }
 
 func NewLevelZero(log *slog.Logger) *LevelZero {
-	commonDevLabels := []string{"pci"}
-	subdevLabels := append(commonDevLabels, "subdevice")
+	subdevLabels := []string{"pci", "subdevice"}
 	d := func(name, help string, lbls []string) *prometheus.Desc {
 		return prometheus.NewDesc(prometheus.BuildFQName(Namespace, "zes", name), help, lbls, nil)
 	}

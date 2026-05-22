@@ -215,7 +215,7 @@ func parseFdinfo(path string) map[string]string {
 	if err != nil {
 		return out
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	s := bufio.NewScanner(f)
 	for s.Scan() {
 		line := s.Text()
