@@ -404,6 +404,17 @@ func encodeEventLine(line string, format map[string]formatSpec) (uint64, string)
 		if err != nil {
 			return 0, fmt.Sprintf("bad hex value for %q: %v", key, err)
 		}
+		// "config" / "config1" / "config2" are perf's raw-encoding convention:
+		// the value is written directly to attr.config{,1,2}. Modern i915 on
+		// discrete cards publishes events this way (e.g. "config=0x100000")
+		// instead of decomposed format keys. We only support attr.config today.
+		if key == "config" {
+			cfg |= val
+			continue
+		}
+		if key == "config1" || key == "config2" {
+			return 0, fmt.Sprintf("event uses %s (perf attr.%s) — not supported yet", key, key)
+		}
 		spec, ok := format[key]
 		if !ok {
 			return 0, fmt.Sprintf("unknown format key %q (kernel exposed it but we don't have a config bit-range for it)", key)
