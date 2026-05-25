@@ -2,7 +2,7 @@
   "title": "Intel GPU",
   "uid": "intel-gpu",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "tags": ["intel", "gpu", "prometheus"],
   "timezone": "browser",
   "refresh": "30s",
@@ -117,13 +117,18 @@
       ]
     },
     {
-      "id": 22, "type": "timeseries", "title": "Voltage / current (hwmon)",
-      "gridPos": {"x": 0, "y": 39, "w": 24, "h": 6},
+      "id": 22, "type": "timeseries", "title": "Voltage (hwmon)",
+      "gridPos": {"x": 0, "y": 39, "w": 12, "h": 6},
       "datasource": {"type": "prometheus", "uid": "${datasource}"},
-      "targets": [
-        {"refId": "A", "expr": "intel_gpu_hwmon_voltage_volts{card=~\"$card\"}", "legendFormat": "V {{card}} ch{{channel}}"},
-        {"refId": "B", "expr": "intel_gpu_hwmon_current_amperes{card=~\"$card\"}", "legendFormat": "A {{card}} ch{{channel}}"}
-      ]
+      "fieldConfig": {"defaults": {"unit": "volt"}},
+      "targets": [{"refId": "A", "expr": "intel_gpu_hwmon_voltage_volts{card=~\"$card\"}", "legendFormat": "{{card}} ch{{channel}}"}]
+    },
+    {
+      "id": 23, "type": "timeseries", "title": "Current (hwmon)",
+      "gridPos": {"x": 12, "y": 39, "w": 12, "h": 6},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {"defaults": {"unit": "amp"}},
+      "targets": [{"refId": "A", "expr": "intel_gpu_hwmon_current_amperes{card=~\"$card\"}", "legendFormat": "{{card}} ch{{channel}}"}]
     },
 
     {"id": 130, "type": "row", "title": "Thermal", "gridPos": {"x": 0, "y": 45, "w": 24, "h": 1}, "collapsed": false},
@@ -162,10 +167,14 @@
     },
     {
       "id": 42, "type": "timeseries", "title": "RC6 / C6 residency",
+      "description": "Idle ratio. PMU series is preferred; the i915 sysfs counter is a fallback when PMU isn't reachable (no CAP_PERFMON / paranoid > 1).",
       "gridPos": {"x": 0, "y": 63, "w": 8, "h": 8},
       "datasource": {"type": "prometheus", "uid": "${datasource}"},
       "fieldConfig": {"defaults": {"unit": "percentunit", "min": 0, "max": 1}},
-      "targets": [{"refId": "A", "expr": "rate(intel_gpu_pmu_counter{family=\"rc6\"}[1m]) / 1e9", "legendFormat": "{{pmu}}"}]
+      "targets": [
+        {"refId": "A", "expr": "rate(intel_gpu_pmu_counter{family=\"rc6\"}[1m]) / 1e9", "legendFormat": "pmu {{pmu}}"},
+        {"refId": "B", "expr": "rate(intel_gpu_i915_rc6_residency_ms{card=~\"$card\"}[1m]) / 1000", "legendFormat": "sysfs {{card}}"}
+      ]
     },
     {
       "id": 43, "type": "timeseries", "title": "Interrupts / sec (PMU)",
@@ -234,7 +243,48 @@
       "targets": [{"refId": "A", "expr": "intel_gpu_xe_throttle_reason{card=~\"$card\"} > 0", "legendFormat": "{{card}} t{{tile}}g{{gt}} {{reason}}"}]
     },
 
-    {"id": 180, "type": "row", "title": "Engine config (i915)", "gridPos": {"x": 0, "y": 98, "w": 24, "h": 1}, "collapsed": true,
+    {"id": 175, "type": "row", "title": "Utilization & correlations", "gridPos": {"x": 0, "y": 98, "w": 24, "h": 1}, "collapsed": false},
+    {
+      "id": 76, "type": "timeseries", "title": "Frequency headroom (actual / RP0)",
+      "description": "How close the GPU is running to its max physical frequency. 1.0 = pinned at RP0.",
+      "gridPos": {"x": 0, "y": 99, "w": 8, "h": 7},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {"defaults": {"unit": "percentunit", "min": 0, "max": 1}},
+      "targets": [
+        {"refId": "A", "expr": "intel_gpu_i915_frequency_actual_mhz{card=~\"$card\"} / on(card, pci, gt) intel_gpu_i915_frequency_rp0_mhz", "legendFormat": "i915 {{card}}/gt{{gt}}"},
+        {"refId": "B", "expr": "intel_gpu_xe_frequency_actual_mhz{card=~\"$card\"} / on(card, pci, tile, gt) intel_gpu_xe_frequency_rp0_mhz", "legendFormat": "xe {{card}}/t{{tile}}g{{gt}}"}
+      ]
+    },
+    {
+      "id": 77, "type": "timeseries", "title": "Power utilization (draw / PL1)",
+      "description": "Fraction of the sustained power limit being used right now. >1 = burst above PL1.",
+      "gridPos": {"x": 8, "y": 99, "w": 8, "h": 7},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {"defaults": {"unit": "percentunit", "min": 0}},
+      "targets": [{"refId": "A", "expr": "rate(intel_gpu_hwmon_energy_joules_total{card=~\"$card\"}[1m]) / on(card, pci, channel) intel_gpu_hwmon_power_max_watts", "legendFormat": "{{card}} ch{{channel}}"}]
+    },
+    {
+      "id": 78, "type": "timeseries", "title": "Engine busy vs power draw",
+      "description": "Workload efficiency: spikes in busy without matching power growth, or vice versa, hint at non-compute bottlenecks.",
+      "gridPos": {"x": 16, "y": 99, "w": 8, "h": 7},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {"refId": "A", "expr": "sum by (pmu) (rate(intel_gpu_pmu_counter{family=\"engine\",kind=\"busy\"}[1m])) / 1e9", "legendFormat": "busy {{pmu}}"},
+        {"refId": "B", "expr": "sum by (card) (rate(intel_gpu_hwmon_energy_joules_total{card=~\"$card\"}[1m]))", "legendFormat": "watts {{card}}"}
+      ]
+    },
+    {
+      "id": 79, "type": "timeseries", "title": "Temperature vs xe throttle reasons",
+      "description": "Overlay to identify thermal- vs power-limited throttling. Temperature on left axis, active throttle flags as step series.",
+      "gridPos": {"x": 0, "y": 106, "w": 24, "h": 7},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {"refId": "A", "expr": "intel_gpu_hwmon_temperature_celsius{card=~\"$card\"}", "legendFormat": "°C {{card}} ch{{channel}}"},
+        {"refId": "B", "expr": "intel_gpu_xe_throttle_reason{card=~\"$card\"} > 0", "legendFormat": "throttle {{card}} t{{tile}}g{{gt}} {{reason}}"}
+      ]
+    },
+
+    {"id": 180, "type": "row", "title": "Engine config (i915)", "gridPos": {"x": 0, "y": 113, "w": 24, "h": 1}, "collapsed": true,
       "panels": [
         {
           "id": 80, "type": "timeseries", "title": "Heartbeat / preempt / stop / timeslice intervals",
