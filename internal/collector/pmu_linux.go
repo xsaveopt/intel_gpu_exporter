@@ -99,11 +99,19 @@ func (p *PMU) open() error {
 	}
 	var opened, skipped int
 	for _, pm := range pmus {
+		p.log.Info("pmu discovered",
+			"pmu", pm.name, "type", pm.typeID, "cpu", pm.cpu,
+			"events_encoded", len(pm.events), "events_dropped", len(pm.droppedEvents),
+			"format_keys", pm.formatKeys)
+		for _, d := range pm.droppedEvents {
+			p.log.Warn("pmu event dropped during encode",
+				"pmu", pm.name, "event", d.name, "raw", d.raw, "reason", d.reason)
+		}
 		for evName, encodedConfig := range pm.events {
 			fd, err := perfOpen(pm.typeID, encodedConfig, pm.cpu)
 			if err != nil {
 				skipped++
-				p.log.Debug("pmu event open failed",
+				p.log.Warn("pmu event open failed",
 					"pmu", pm.name, "event", evName, "cpu", pm.cpu, "err", err)
 				continue
 			}
@@ -163,10 +171,16 @@ func (p *PMU) Close() error {
 // ---- PMU discovery ----
 
 type pmuDevice struct {
-	name   string            // "i915", "xe_0000_00_02_0"
-	typeID uint32            // attr.type
-	cpu    int               // CPU to bind perf fds to (first entry in cpumask)
-	events map[string]uint64 // event name -> encoded config
+	name          string            // "i915", "xe_0000_00_02_0"
+	typeID        uint32            // attr.type
+	cpu           int               // CPU to bind perf fds to (first entry in cpumask)
+	events        map[string]uint64 // event name -> encoded config
+	droppedEvents []droppedEvent    // events we couldn't encode (logged once at startup)
+	formatKeys    []string          // format keys we recognized for attr.config
+}
+
+type droppedEvent struct {
+	name, raw, reason string
 }
 
 func discoverPMUs() ([]pmuDevice, error) {
@@ -203,12 +217,19 @@ func loadPMU(dir, name string) (pmuDevice, error) {
 	if err != nil {
 		return pmuDevice{}, err
 	}
-	events, err := loadEvents(filepath.Join(dir, "events"), format)
+	formatKeys := make([]string, 0, len(format))
+	for k := range format {
+		formatKeys = append(formatKeys, k)
+	}
+	events, dropped, err := loadEvents(filepath.Join(dir, "events"), format)
 	if err != nil {
 		return pmuDevice{}, err
 	}
 	cpu := readCpumaskFirst(filepath.Join(dir, "cpumask"))
-	return pmuDevice{name: name, typeID: uint32(typeID64), cpu: cpu, events: events}, nil
+	return pmuDevice{
+		name: name, typeID: uint32(typeID64), cpu: cpu,
+		events: events, droppedEvents: dropped, formatKeys: formatKeys,
+	}, nil
 }
 
 // readCpumaskFirst returns the first CPU listed in the PMU's cpumask file.
@@ -329,14 +350,15 @@ func bitMask(width uint) uint64 {
 	return (uint64(1) << width) - 1
 }
 
-func loadEvents(dir string, format map[string]formatSpec) (map[string]uint64, error) {
+func loadEvents(dir string, format map[string]formatSpec) (map[string]uint64, []droppedEvent, error) {
 	out := map[string]uint64{}
+	var dropped []droppedEvent
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return out, nil
+			return out, nil, nil
 		}
-		return nil, err
+		return nil, nil, err
 	}
 	for _, e := range entries {
 		name := e.Name()
@@ -348,20 +370,24 @@ func loadEvents(dir string, format map[string]formatSpec) (map[string]uint64, er
 		if err != nil {
 			continue
 		}
-		cfg, ok := encodeEventLine(strings.TrimSpace(string(b)), format)
-		if !ok {
+		raw := strings.TrimSpace(string(b))
+		cfg, reason := encodeEventLine(raw, format)
+		if reason != "" {
+			dropped = append(dropped, droppedEvent{name: name, raw: raw, reason: reason})
 			continue
 		}
 		out[name] = cfg
 	}
-	return out, nil
+	return out, dropped, nil
 }
 
 // encodeEventLine parses a perf event description like "event=0x01,gt=0" and
 // folds it into a single attr.config value using the PMU's format spec.
 // If a referenced format key is missing we drop the event — we only support
 // events fully describable through attr.config.
-func encodeEventLine(line string, format map[string]formatSpec) (uint64, bool) {
+// encodeEventLine returns the encoded attr.config value, or a non-empty reason
+// string when the event can't be encoded (caller logs it).
+func encodeEventLine(line string, format map[string]formatSpec) (uint64, string) {
 	var cfg uint64
 	for _, part := range strings.Split(line, ",") {
 		part = strings.TrimSpace(part)
@@ -370,21 +396,21 @@ func encodeEventLine(line string, format map[string]formatSpec) (uint64, bool) {
 		}
 		eq := strings.IndexByte(part, '=')
 		if eq < 0 {
-			return 0, false
+			return 0, fmt.Sprintf("malformed token %q (no '=')", part)
 		}
 		key := strings.TrimSpace(part[:eq])
 		valStr := strings.TrimPrefix(strings.TrimSpace(part[eq+1:]), "0x")
 		val, err := strconv.ParseUint(valStr, 16, 64)
 		if err != nil {
-			return 0, false
+			return 0, fmt.Sprintf("bad hex value for %q: %v", key, err)
 		}
 		spec, ok := format[key]
 		if !ok {
-			return 0, false
+			return 0, fmt.Sprintf("unknown format key %q (kernel exposed it but we don't have a config bit-range for it)", key)
 		}
 		cfg |= (val & spec.mask) << spec.shift
 	}
-	return cfg, true
+	return cfg, ""
 }
 
 // ---- perf_event_open wrappers ----

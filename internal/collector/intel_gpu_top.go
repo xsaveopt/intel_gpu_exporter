@@ -147,10 +147,19 @@ func (c *IntelGPUTop) Stop() {
 }
 
 func (c *IntelGPUTop) consume(r io.Reader) {
-	// intel_gpu_top -J emits concatenated JSON objects. Use a streaming decoder.
+	// intel_gpu_top -J emits a JSON array: "[\n{...},\n{...},\n..." with the
+	// closing "]" only at process exit. We consume the opening "[" as a token,
+	// then stream objects with dec.Decode() inside dec.More().
 	br := bufio.NewReader(r)
 	dec := json.NewDecoder(br)
-	for {
+	if t, err := dec.Token(); err != nil {
+		c.log.Warn("intel_gpu_top read opening token", "err", err)
+		return
+	} else if d, ok := t.(json.Delim); !ok || d != '[' {
+		c.log.Warn("intel_gpu_top unexpected opening token", "token", t)
+		return
+	}
+	for dec.More() {
 		var s gpuTopSample
 		if err := dec.Decode(&s); err != nil {
 			if err == io.EOF {
