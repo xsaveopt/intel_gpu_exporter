@@ -53,6 +53,9 @@ MemoryDenyWriteExecute=true
 RestrictRealtime=true
 RestrictNamespaces=true
 SystemCallFilter=@system-service
+# perf_event_open isn't in @system-service — needed for the PMU collector and
+# for intel_gpu_top (both open i915 PMU events). Drop this line if neither is in use.
+SystemCallFilter=perf_event_open
 SystemCallErrorNumber=EPERM
 ReadOnlyPaths=/sys /proc
 

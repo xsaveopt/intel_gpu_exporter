@@ -111,15 +111,33 @@ func (c *IntelGPUTop) Start(parent context.Context) error {
 		cancel()
 		return err
 	}
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		cancel()
+		return err
+	}
 	if err := cmd.Start(); err != nil {
 		cancel()
 		return err
 	}
+	c.log.Info("intel_gpu_top started", "pid", cmd.Process.Pid, "bin", c.binPath)
 	go c.consume(stdout)
+	go c.drainStderr(stderr)
 	go func() {
-		_ = cmd.Wait()
+		err := cmd.Wait()
+		samples := c.last.Load() != 0
+		c.log.Warn("intel_gpu_top exited",
+			"err", err, "got_any_sample", samples,
+			"hint", "if got_any_sample=false, check stderr above; common causes: CAP_PERFMON missing, perf_event_paranoid too high, or systemd SystemCallFilter blocking perf_event_open")
 	}()
 	return nil
+}
+
+func (c *IntelGPUTop) drainStderr(r io.Reader) {
+	sc := bufio.NewScanner(r)
+	for sc.Scan() {
+		c.log.Warn("intel_gpu_top stderr", "line", sc.Text())
+	}
 }
 
 func (c *IntelGPUTop) Stop() {
@@ -138,7 +156,7 @@ func (c *IntelGPUTop) consume(r io.Reader) {
 			if err == io.EOF {
 				return
 			}
-			c.log.Debug("intel_gpu_top decode", "err", err)
+			c.log.Warn("intel_gpu_top decode", "err", err)
 			time.Sleep(500 * time.Millisecond)
 			continue
 		}
