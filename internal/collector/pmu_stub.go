@@ -12,8 +12,6 @@ import (
 	"github.com/sratabix/intel_gpu_exporter/internal/discovery"
 )
 
-// PMU collector is Linux-only. On other platforms this is a no-op that always
-// reports unavailable so developers can build/run the exporter on macOS.
 type PMU struct{}
 
 func NewPMU(*slog.Logger) *PMU { return &PMU{} }

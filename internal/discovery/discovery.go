@@ -21,22 +21,21 @@ const (
 	DriverUnknown Driver = "unknown"
 )
 
-// GPU describes a discovered Intel GPU device.
 type GPU struct {
-	Card       string // e.g. "card0"
-	DRMPath    string // /sys/class/drm/card0
-	DevicePath string // /sys/class/drm/card0/device (resolved real path)
-	PCIAddr    string // 0000:00:02.0
-	DeviceID   string // 0x...
+	Card       string
+	DRMPath    string
+	DevicePath string
+	PCIAddr    string
+	DeviceID   string
 	Driver     Driver
-	HwmonPaths []string // /sys/class/hwmon/hwmon* belonging to this device
-	Tiles      []Tile   // xe only; for i915 typically a single synthetic tile
+	HwmonPaths []string
+	Tiles      []Tile
 }
 
 type Tile struct {
 	Index int
 	GTs   []GT
-	Path  string // tile root in sysfs (xe), or empty (i915)
+	Path  string
 }
 
 type GT struct {
@@ -44,7 +43,6 @@ type GT struct {
 	Path  string
 }
 
-// Discover scans sysfs for Intel GPUs.
 func Discover(sysfsRoot string) ([]GPU, error) {
 	drmRoot := filepath.Join(sysfsRoot, "class", "drm")
 	entries, err := os.ReadDir(drmRoot)
@@ -125,22 +123,13 @@ func discoverTiles(driver Driver, devPath string) []Tile {
 		}
 		return tiles
 	case DriverI915:
-		// Modern i915 (>= 6.0) exposes per-GT files under <drm>/gt/gtN/.
-		// drmPath equals filepath.Dir(devPath) sans /device; we receive devPath
-		// here, but per-GT lives under the DRM node not the PCI node, so the
-		// caller (Discover) re-maps. We do the glob through the DRM root by
-		// walking up to /sys/class/drm/cardN/gt/.
-		// To keep this function pure we return the synthetic tile with no GT
-		// paths; the i915 sysfs collector resolves the DRM path itself.
+
 		return []Tile{{Index: 0, GTs: []GT{{Index: 0, Path: devPath}}}}
 	default:
 		return []Tile{{Index: 0, GTs: []GT{{Index: 0, Path: devPath}}}}
 	}
 }
 
-// I915GTs returns the per-GT sysfs paths under /sys/class/drm/cardN/gt/gt*
-// for a given GPU. Returns empty slice on single-GT platforms that don't
-// expose the gt/ subtree.
 func I915GTs(g GPU) []GT {
 	if g.Driver != DriverI915 {
 		return nil

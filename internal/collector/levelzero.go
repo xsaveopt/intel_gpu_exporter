@@ -12,18 +12,6 @@ import (
 	"github.com/sratabix/intel_gpu_exporter/internal/levelzero"
 )
 
-// LevelZero exposes telemetry that only Level Zero sysman can provide:
-//
-//   - RAS / ECC counters (correctable, uncorrectable; per category)
-//   - per-engine-group active time at sub-engine granularity
-//   - memory bandwidth counters (read/write/max)
-//   - memory size / free
-//   - per-domain frequency state + throttle time accumulators
-//   - per-domain energy counters (more authoritative than hwmon for dGPUs)
-//   - per-sensor temperatures with named sensor types (gpu/memory/board/...)
-//
-// On systems without libze_loader installed (most consumer iGPU/dGPU boxes),
-// Available() returns false and the collector is silently dropped.
 type LevelZero struct {
 	log    *slog.Logger
 	client *levelzero.Client

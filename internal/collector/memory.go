@@ -10,17 +10,6 @@ import (
 	"github.com/sratabix/intel_gpu_exporter/internal/sysutil"
 )
 
-// Memory reads device-level memory sizes from sysfs.
-//
-// The upstream ABI here is still in motion. We probe several known locations
-// and emit whatever the kernel exposes:
-//
-//	/sys/class/drm/cardN/lmem_total_bytes        (proposed, not yet merged)
-//	/sys/class/drm/cardN/device/resource0_size   (PCI BAR0; rough VRAM proxy for dGPUs)
-//	<xe tile root>/physical_vram_size_bytes      (xe; landed for some platforms)
-//
-// On iGPUs none of these are meaningful (memory is shared with the system) and
-// the collector stays silent.
 type Memory struct {
 	gpus []discovery.GPU
 

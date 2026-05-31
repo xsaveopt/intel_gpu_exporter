@@ -50,7 +50,6 @@ type Memory struct {
 	PhysicalSize uint64
 }
 
-// freqState is exported as opaque on stub.
 type freqState struct{ Actual, Request, TDP float64 }
 
 func (s freqState) ActualMHz() float64  { return s.Actual }

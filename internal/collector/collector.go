@@ -13,25 +13,20 @@ import (
 
 const Namespace = "intel_gpu"
 
-// Source is implemented by anything that produces metrics from one Intel GPU data source
-// (sysfs, hwmon, fdinfo, PMU, intel_gpu_top, ...).
 type Source interface {
 	Name() string
-	// Available reports whether this source can produce metrics on this system.
-	// Implementations should be cheap; do real work in Update.
+
 	Available(gpus []discovery.GPU) bool
-	// Update fetches a fresh sample. Called once per scrape.
+
 	Update(ctx context.Context, ch chan<- prometheus.Metric) error
 }
 
-// Registry aggregates Sources and implements prometheus.Collector.
 type Registry struct {
 	gpus    []discovery.GPU
 	sources []Source
 	log     *slog.Logger
 	timeout time.Duration
 
-	// Self-metrics
 	scrapeDuration *prometheus.Desc
 	scrapeSuccess  *prometheus.Desc
 }
@@ -93,12 +88,10 @@ func (r *Registry) Collect(ch chan<- prometheus.Metric) {
 	wg.Wait()
 }
 
-// CommonLabels returns labels identifying a GPU device.
 func CommonLabels() []string {
 	return []string{"card", "pci", "device", "driver"}
 }
 
-// LabelValues returns label values for a GPU matching CommonLabels.
 func LabelValues(g discovery.GPU) []string {
 	return []string{g.Card, g.PCIAddr, g.DeviceID, string(g.Driver)}
 }

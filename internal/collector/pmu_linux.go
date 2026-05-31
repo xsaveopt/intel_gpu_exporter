@@ -19,22 +19,6 @@ import (
 	"github.com/sratabix/intel_gpu_exporter/internal/discovery"
 )
 
-// PMU is a perf_event_open(2)-based collector for the i915 and xe DRM PMUs.
-//
-// It is fully data-driven: the kernel publishes one entry per device under
-// /sys/bus/event_source/devices/. For each such PMU we read:
-//
-//   - type           - the PERF_TYPE value to put in perf_event_attr.type
-//   - events/<name>  - a string like "event=0x01" or "config=0x...,gt=0"
-//   - format/<key>   - bit range like "config:0-7"  (tells us how to encode
-//     each key=value pair from the events file into the
-//     64-bit config word)
-//
-// At startup we open one perf event fd per discovered event. On each scrape
-// we read the cumulative counter and emit a Prometheus metric. Counter
-// semantics depend on the event (residencies are nanoseconds, frequencies are
-// rolling sums of MHz samples, engine busy is nanoseconds, etc.); we expose
-// raw counter values plus a derived rate where it makes sense.
 type PMU struct {
 	log    *slog.Logger
 	events []*pmuEvent
@@ -44,17 +28,15 @@ type PMU struct {
 }
 
 type pmuEvent struct {
-	pmu    string // "i915", "xe_0000_00_02_0"
-	name   string // "actual-frequency", "rcs0-busy", "gt-c6-residency"
+	pmu    string
+	name   string
 	config uint64
 	fd     int
 	cpu    int
 
-	// Decoded labels for dashboards (zero values when the event name doesn't
-	// match a known shape). See decodeEventName.
-	family string // "engine", "frequency", "rc6", "interrupts", "other"
-	engine string // e.g. "rcs0", "vcs0"; empty for non-engine events
-	kind   string // for engine events: "busy", "sema", "wait"; otherwise empty
+	family string
+	engine string
+	kind   string
 }
 
 func NewPMU(log *slog.Logger) *PMU {
@@ -72,9 +54,6 @@ func NewPMU(log *slog.Logger) *PMU {
 
 func (p *PMU) Name() string { return "pmu" }
 
-// Available probes /sys/bus/event_source/devices for known DRM PMUs and tries
-// to open at least one event. Permission failure (perf_event_paranoid) is the
-// usual reason this returns false.
 func (p *PMU) Available(gpus []discovery.GPU) bool {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -168,15 +147,13 @@ func (p *PMU) Close() error {
 	return nil
 }
 
-// ---- PMU discovery ----
-
 type pmuDevice struct {
-	name          string            // "i915", "xe_0000_00_02_0"
-	typeID        uint32            // attr.type
-	cpu           int               // CPU to bind perf fds to (first entry in cpumask)
-	events        map[string]uint64 // event name -> encoded config
-	droppedEvents []droppedEvent    // events we couldn't encode (logged once at startup)
-	formatKeys    []string          // format keys we recognized for attr.config
+	name          string
+	typeID        uint32
+	cpu           int
+	events        map[string]uint64
+	droppedEvents []droppedEvent
+	formatKeys    []string
 }
 
 type droppedEvent struct {
@@ -232,11 +209,6 @@ func loadPMU(dir, name string) (pmuDevice, error) {
 	}, nil
 }
 
-// readCpumaskFirst returns the first CPU listed in the PMU's cpumask file.
-// Many uncore-style PMUs (DRM PMUs included) only allow being read on one
-// specific CPU; the kernel publishes which one via this file. Falls back to 0.
-//
-// File format examples: "0", "0-3", "0,4,8".
 func readCpumaskFirst(path string) int {
 	b, err := os.ReadFile(path)
 	if err != nil {
@@ -246,7 +218,7 @@ func readCpumaskFirst(path string) int {
 	if s == "" {
 		return 0
 	}
-	// Take the first comma-separated chunk, then the first dash-separated part.
+
 	first := strings.SplitN(s, ",", 2)[0]
 	first = strings.SplitN(first, "-", 2)[0]
 	cpu, err := strconv.Atoi(strings.TrimSpace(first))
@@ -256,18 +228,8 @@ func readCpumaskFirst(path string) int {
 	return cpu
 }
 
-// decodeEventName extracts engine and kind labels from kernel-published event
-// names. Pattern reference:
-//
-//	i915 engine events: <class><instance>-<kind>  e.g. rcs0-busy, vcs0-sema
-//	i915 globals:       actual-frequency, requested-frequency, interrupts,
-//	                    rc6-residency, software-gt-awake-time
-//	xe globals:         engine-active-ticks, engine-total-ticks,
-//	                    gt-actual-frequency, gt-c6-residency
-//
-// We return (family, engine, kind). Unknown events get family="other".
 func decodeEventName(name string) (family, engine, kind string) {
-	// i915 engine pattern: <class><instance>-<busy|sema|wait>
+
 	for _, suffix := range []string{"-busy", "-sema", "-wait"} {
 		if strings.HasSuffix(name, suffix) {
 			return "engine", strings.TrimSuffix(name, suffix), strings.TrimPrefix(suffix, "-")
@@ -290,9 +252,6 @@ func decodeEventName(name string) (family, engine, kind string) {
 	return "other", "", ""
 }
 
-// formatSpec maps a format key (e.g. "event", "gt") to the bit range within
-// perf_event_attr.config it occupies. Bit ranges are 0-indexed and inclusive,
-// matching the syntax in /sys/bus/event_source/devices/<pmu>/format/<key>.
 type formatSpec struct {
 	shift uint
 	mask  uint64
@@ -312,15 +271,15 @@ func loadFormats(dir string) (map[string]formatSpec, error) {
 		if err != nil {
 			continue
 		}
-		// content looks like "config:0-7" or "config1:32-39"
+
 		spec := strings.TrimSpace(string(b))
 		colon := strings.IndexByte(spec, ':')
 		if colon < 0 {
 			continue
 		}
-		field := spec[:colon] // "config" or "config1"
+		field := spec[:colon]
 		if field != "config" {
-			// We only handle attr.config (64-bit). DRM PMUs don't use config1/2.
+
 			continue
 		}
 		rng := spec[colon+1:]
@@ -362,7 +321,7 @@ func loadEvents(dir string, format map[string]formatSpec) (map[string]uint64, []
 	}
 	for _, e := range entries {
 		name := e.Name()
-		// skip ".unit" / ".scale" companion files
+
 		if strings.ContainsRune(name, '.') {
 			continue
 		}
@@ -381,12 +340,6 @@ func loadEvents(dir string, format map[string]formatSpec) (map[string]uint64, []
 	return out, dropped, nil
 }
 
-// encodeEventLine parses a perf event description like "event=0x01,gt=0" and
-// folds it into a single attr.config value using the PMU's format spec.
-// If a referenced format key is missing we drop the event — we only support
-// events fully describable through attr.config.
-// encodeEventLine returns the encoded attr.config value, or a non-empty reason
-// string when the event can't be encoded (caller logs it).
 func encodeEventLine(line string, format map[string]formatSpec) (uint64, string) {
 	var cfg uint64
 	for _, part := range strings.Split(line, ",") {
@@ -404,10 +357,7 @@ func encodeEventLine(line string, format map[string]formatSpec) (uint64, string)
 		if err != nil {
 			return 0, fmt.Sprintf("bad hex value for %q: %v", key, err)
 		}
-		// "config" / "config1" / "config2" are perf's raw-encoding convention:
-		// the value is written directly to attr.config{,1,2}. Modern i915 on
-		// discrete cards publishes events this way (e.g. "config=0x100000")
-		// instead of decomposed format keys. We only support attr.config today.
+
 		if key == "config" {
 			cfg |= val
 			continue
@@ -424,8 +374,6 @@ func encodeEventLine(line string, format map[string]formatSpec) (uint64, string)
 	return cfg, ""
 }
 
-// ---- perf_event_open wrappers ----
-
 func perfOpen(typeID uint32, config uint64, cpu int) (int, error) {
 	attr := unix.PerfEventAttr{
 		Type:        typeID,
@@ -436,8 +384,7 @@ func perfOpen(typeID uint32, config uint64, cpu int) (int, error) {
 		Read_format: 0,
 		Bits:        unix.PerfBitDisabled | unix.PerfBitExcludeHv,
 	}
-	// pid=-1, cpu pinned to the PMU's cpumask first entry — DRM PMUs are
-	// per-device, not per-task, and many only accept one CPU.
+
 	fd, err := unix.PerfEventOpen(&attr, -1, cpu, -1, unix.PERF_FLAG_FD_CLOEXEC)
 	if err != nil {
 		return -1, err

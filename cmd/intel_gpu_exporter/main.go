@@ -20,7 +20,6 @@ import (
 	"github.com/sratabix/intel_gpu_exporter/internal/kernelinfo"
 )
 
-// version is overridden at build time via -ldflags "-X main.version=..."
 var version = "dev"
 
 func main() {

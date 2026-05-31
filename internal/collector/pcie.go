@@ -12,17 +12,6 @@ import (
 	"github.com/sratabix/intel_gpu_exporter/internal/sysutil"
 )
 
-// PCIe reads PCIe link state for each Intel GPU device.
-//
-// Files read (from /sys/bus/pci/devices/<addr>/):
-//
-//	current_link_speed  - e.g. "16.0 GT/s PCIe" (Gen4)
-//	current_link_width  - e.g. "16"
-//	max_link_speed      - e.g. "32.0 GT/s PCIe" (Gen5)
-//	max_link_width      - e.g. "16"
-//
-// Useful for spotting GPUs that got renegotiated down to a lower PCIe gen/width
-// because of a thermal event, cable issue, or power-state weirdness.
 type PCIe struct {
 	gpus []discovery.GPU
 
@@ -82,15 +71,6 @@ func (c *PCIe) Update(ctx context.Context, ch chan<- prometheus.Metric) error {
 	return nil
 }
 
-// parseLinkSpeed extracts the GT/s number from strings like "16.0 GT/s PCIe"
-// and returns both the speed and the corresponding PCIe generation.
-//
-//	2.5  -> Gen1
-//	5.0  -> Gen2
-//	8.0  -> Gen3
-//	16.0 -> Gen4
-//	32.0 -> Gen5
-//	64.0 -> Gen6
 func parseLinkSpeed(s string) (gtps float64, gen float64, ok bool) {
 	fields := strings.Fields(s)
 	if len(fields) == 0 {

@@ -1,11 +1,10 @@
 name: CI
 
-# Lint+build on every push/PR; raw binary release only on v*.*.* tags.
 on:
   push:
     branches: ["**"]
     tags:
-      - 'v*'
+      - "v*"
   pull_request:
 
 permissions:

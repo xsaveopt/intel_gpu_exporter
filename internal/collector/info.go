@@ -13,9 +13,6 @@ import (
 	"github.com/sratabix/intel_gpu_exporter/internal/sysutil"
 )
 
-// Info emits a single info-style gauge per GPU, the standard Prometheus pattern
-// for static metadata. Lets dashboards join other metrics to a human-readable
-// device label using `* on (pci) group_left(...) intel_gpu_info`.
 type Info struct {
 	gpus []discovery.GPU
 	desc *prometheus.Desc
@@ -48,7 +45,7 @@ func (c *Info) Update(ctx context.Context, ch chan<- prometheus.Metric) error {
 		revision, _ := sysutil.ReadString(filepath.Join(g.DevicePath, "revision"))
 		numa, _ := sysutil.ReadString(filepath.Join(g.DevicePath, "numa_node"))
 		modalias, _ := sysutil.ReadString(filepath.Join(g.DevicePath, "modalias"))
-		// /sys/.../uevent occasionally has additional human-friendly fields.
+
 		uevent := parseUevent(filepath.Join(g.DevicePath, "uevent"))
 		if v, ok := uevent["PCI_SUBSYS_ID"]; ok && (subVendor == "" || subDevice == "") {
 			parts := strings.Split(v, ":")

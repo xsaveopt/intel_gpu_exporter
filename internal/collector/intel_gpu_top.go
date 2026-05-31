@@ -17,18 +17,13 @@ import (
 	"github.com/sratabix/intel_gpu_exporter/internal/discovery"
 )
 
-// IntelGPUTop wraps `intel_gpu_top -J` as a fallback when PMU isn't reachable.
-//
-// intel_gpu_top emits a stream of concatenated JSON objects (one per sample);
-// we run it continuously and keep the latest snapshot in memory. On scrape we
-// read whatever the last sample was.
 type IntelGPUTop struct {
 	binPath string
 	log     *slog.Logger
 
 	mu     sync.Mutex
 	latest *gpuTopSample
-	last   atomic.Int64 // unix nano of last sample
+	last   atomic.Int64
 	cancel context.CancelFunc
 
 	freqReq *prometheus.Desc
@@ -101,7 +96,6 @@ func (c *IntelGPUTop) Available(gpus []discovery.GPU) bool {
 	return false
 }
 
-// Start spawns the background intel_gpu_top -J reader.
 func (c *IntelGPUTop) Start(parent context.Context) error {
 	ctx, cancel := context.WithCancel(parent)
 	c.cancel = cancel
@@ -147,9 +141,7 @@ func (c *IntelGPUTop) Stop() {
 }
 
 func (c *IntelGPUTop) consume(r io.Reader) {
-	// intel_gpu_top -J emits a JSON array: "[\n{...},\n{...},\n..." with the
-	// closing "]" only at process exit. We consume the opening "[" as a token,
-	// then stream objects with dec.Decode() inside dec.More().
+
 	br := bufio.NewReader(r)
 	dec := json.NewDecoder(br)
 	if t, err := dec.Token(); err != nil {

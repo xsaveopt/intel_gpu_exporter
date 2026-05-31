@@ -12,18 +12,6 @@ import (
 	"github.com/sratabix/intel_gpu_exporter/internal/sysutil"
 )
 
-// Engines reads per-engine configuration exposed by i915 under
-// /sys/class/drm/cardN/engine/<name>/. These are config knobs rather than
-// utilisation counters (utilisation goes through PMU or intel_gpu_top), but
-// they're useful for:
-//
-//   - documenting which engines the kernel sees (rcs0, vcs0, vcs1, vecs0, ...)
-//   - alerting if someone bumped heartbeat/preempt timeouts away from defaults
-//
-// References:
-//
-//	drivers/gpu/drm/i915/gt/sysfs_engines.c
-//	"Replace hangcheck by heartbeats" patch series
 type Engines struct {
 	gpus []discovery.GPU
 

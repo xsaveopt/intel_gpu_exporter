@@ -1,8 +1,3 @@
-// Package kernelinfo detects the running Linux kernel version and reports which
-// Intel-GPU-related kernel features are expected to be present.
-//
-// Each feature carries the minimum kernel version where it was merged. References
-// are tracked next to each entry so the matrix can be audited.
 package kernelinfo
 
 import (
@@ -13,7 +8,6 @@ import (
 	"strings"
 )
 
-// Version represents a parsed kernel version (major.minor[.patch]).
 type Version struct {
 	Major int
 	Minor int
@@ -28,7 +22,6 @@ func (v Version) String() string {
 	return fmt.Sprintf("%d.%d.%d", v.Major, v.Minor, v.Patch)
 }
 
-// AtLeast reports whether v >= other (major.minor only, patch ignored).
 func (v Version) AtLeast(other Version) bool {
 	if v.Major != other.Major {
 		return v.Major > other.Major
@@ -36,21 +29,10 @@ func (v Version) AtLeast(other Version) bool {
 	return v.Minor >= other.Minor
 }
 
-// V is a shorthand to build a Version literal.
 func V(major, minor int) Version { return Version{Major: major, Minor: minor} }
 
 var verRe = regexp.MustCompile(`^(\d+)\.(\d+)(?:\.(\d+))?`)
 
-// PerfParanoid reads /proc/sys/kernel/perf_event_paranoid. Returns the int
-// value and a human-readable description of what it means for our PMU use.
-//
-//	-1  unrestricted
-//	 0  disallow raw tracepoints without CAP_SYS_ADMIN
-//	 1  also disallow CPU events without CAP_PERFMON (default on most distros)
-//	 2  also disallow kernel profiling
-//	 3  hardened — no perf events at all (Debian/Ubuntu hardened)
-//
-// DRM PMUs (i915, xe) require value <= 1 OR CAP_PERFMON.
 func PerfParanoid() (int, string, error) {
 	b, err := os.ReadFile("/proc/sys/kernel/perf_event_paranoid")
 	if err != nil {
@@ -73,8 +55,6 @@ func PerfParanoid() (int, string, error) {
 	return v, desc, nil
 }
 
-// Detect reads the running kernel version. On non-Linux it returns a zero
-// Version with the OS name stashed in Raw so callers can render it.
 func Detect() Version {
 	if b, err := os.ReadFile("/proc/sys/kernel/osrelease"); err == nil {
 		return parse(strings.TrimSpace(string(b)))
@@ -99,7 +79,6 @@ func parse(s string) Version {
 	return Version{Major: maj, Minor: min, Patch: patch, Raw: s}
 }
 
-// Driver scope a feature applies to.
 type Driver string
 
 const (
@@ -108,28 +87,18 @@ const (
 	DriverXe   Driver = "xe"
 )
 
-// Feature describes a kernel-exposed metric source and when it became available.
 type Feature struct {
-	ID       string  // short stable identifier used in logs
-	Driver   Driver  // which driver(s) this concerns
-	Since    Version // minimum kernel where the feature is upstream
-	Summary  string  // one-line description
-	Notes    string  // optional caveats ("DG1/DG2 only", "Battlemage and newer")
-	Endpoint string  // example path / PMU name
-	Ref      string  // commit hash, patch URL or LWN article
+	ID       string
+	Driver   Driver
+	Since    Version
+	Summary  string
+	Notes    string
+	Endpoint string
+	Ref      string
 }
 
-// Matrix is the curated list of features the exporter can read. Keep this list
-// in sync with reality; add a Ref for every entry.
-//
-// Sources of truth (audit when bumping):
-//   - drm/i915: Documentation/gpu/i915.rst + drivers/gpu/drm/i915/i915_pmu.c
-//   - drm/xe:   Documentation/gpu/xe/ + drivers/gpu/drm/xe/
-//   - hwmon ABI: Documentation/ABI/testing/sysfs-driver-intel-i915-hwmon
-//     Documentation/ABI/testing/sysfs-driver-intel-xe-hwmon
-//   - fdinfo:   Documentation/gpu/drm-usage-stats.rst
 var Matrix = []Feature{
-	// --- i915 ---
+
 	{
 		ID: "i915.pmu", Driver: DriverI915, Since: V(4, 16),
 		Summary:  "i915 PMU: engine busy/sema/wait, requested/actual frequency, RC6 residency, interrupts",
@@ -181,7 +150,6 @@ var Matrix = []Feature{
 		Ref:      "commit 9688530, merged v6.8-rc1",
 	},
 
-	// --- xe ---
 	{
 		ID: "xe.driver", Driver: DriverXe, Since: V(6, 8),
 		Summary: "Intel Xe driver initial upstream merge (Tiger Lake+, DG2, Lunar Lake)",
@@ -237,15 +205,12 @@ var Matrix = []Feature{
 	},
 }
 
-// Status describes one feature's availability given a kernel version & drivers.
 type Status struct {
 	Feature   Feature
 	Available bool
-	Reason    string // why not available (kernel too old / driver not present)
+	Reason    string
 }
 
-// Evaluate returns the status of each known feature for the running kernel and
-// the set of detected drivers ("i915", "xe").
 func Evaluate(k Version, drivers map[string]bool) []Status {
 	out := make([]Status, 0, len(Matrix))
 	for _, f := range Matrix {

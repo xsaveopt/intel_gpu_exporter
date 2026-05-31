@@ -11,10 +11,6 @@ import (
 	"github.com/sratabix/intel_gpu_exporter/internal/sysutil"
 )
 
-// XeSysfs reads the xe driver's tile*/gt*/freq0/{cur,act,rp0,rpa,rpn}_freq
-// and throttle reason files.
-//
-// Reference: Documentation/gpu/xe/xe_gt_freq.rst
 type XeSysfs struct {
 	gpus []discovery.GPU
 

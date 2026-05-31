@@ -7,16 +7,13 @@ import (
 	"fmt"
 )
 
-// Client holds initialised Level Zero state. Cheap to keep around for the
-// lifetime of the process; the underlying library does its own caching.
 type Client struct {
 	devices []Device
 }
 
-// Device is one enumerated sysman device with all sub-handles pre-collected.
 type Device struct {
 	Handle DeviceHandle
-	PCIBus string // "0000:18:00.0" — matches /sys/bus/pci/devices/<this>
+	PCIBus string
 	Power  []Power
 	Temp   []Temperature
 	Freq   []Frequency
@@ -49,14 +46,14 @@ type Frequency struct {
 
 type Engine struct {
 	Handle      EngineHandle
-	Type        string // "compute", "render", "media", ...
+	Type        string
 	OnSubdevice bool
 	SubdeviceID uint32
 }
 
 type RAS struct {
 	Handle      RasHandle
-	ErrorType   string // "correctable" / "uncorrectable"
+	ErrorType   string
 	OnSubdevice bool
 	SubdeviceID uint32
 }
@@ -69,8 +66,6 @@ type Memory struct {
 	PhysicalSize uint64
 }
 
-// Open dlopens libze_loader, runs zesInit, and enumerates everything.
-// Returns errUnavailable if the loader cannot be found.
 func Open() (*Client, error) {
 	if err := loadLibrary(); err != nil {
 		return nil, err
@@ -102,11 +97,8 @@ func Open() (*Client, error) {
 	return c, nil
 }
 
-// Devices returns the enumerated sysman device list.
 func (c *Client) Devices() []Device { return c.devices }
 
-// Available reports whether the loader is present and at least one device was
-// found. Cheap idempotent check.
 func Available() bool {
 	if err := loadLibrary(); err != nil {
 		return false
@@ -117,7 +109,6 @@ func Available() bool {
 func enumerateDevice(h DeviceHandle) Device {
 	d := Device{Handle: h}
 
-	// PCI properties → matches sysfs paths.
 	var pci pciProperties
 	pci.Stype = stypePciProperties
 	if rc := fns.zesDevicePciGetProperties(h, &pci); rc == zeResultSuccess {
@@ -126,7 +117,6 @@ func enumerateDevice(h DeviceHandle) Device {
 			pci.Address.Device, pci.Address.Function)
 	}
 
-	// Power
 	if pwrs, err := list(func(c *uint32, o *PwrHandle) uint32 {
 		return fns.zesDeviceEnumPowerDomains(h, c, o)
 	}); err == nil {
@@ -147,7 +137,6 @@ func enumerateDevice(h DeviceHandle) Device {
 		}
 	}
 
-	// Temperature
 	if temps, err := list(func(c *uint32, o *TempHandle) uint32 {
 		return fns.zesDeviceEnumTemperatureSensors(h, c, o)
 	}); err == nil {
@@ -166,7 +155,6 @@ func enumerateDevice(h DeviceHandle) Device {
 		}
 	}
 
-	// Frequency
 	if freqs, err := list(func(c *uint32, o *FreqHandle) uint32 {
 		return fns.zesDeviceEnumFrequencyDomains(h, c, o)
 	}); err == nil {
@@ -183,7 +171,6 @@ func enumerateDevice(h DeviceHandle) Device {
 		}
 	}
 
-	// Engine groups
 	if engs, err := list(func(c *uint32, o *EngineHandle) uint32 {
 		return fns.zesDeviceEnumEngineGroups(h, c, o)
 	}); err == nil {
@@ -200,7 +187,6 @@ func enumerateDevice(h DeviceHandle) Device {
 		}
 	}
 
-	// RAS error sets
 	if rasSets, err := list(func(c *uint32, o *RasHandle) uint32 {
 		return fns.zesDeviceEnumRasErrorSets(h, c, o)
 	}); err == nil {
@@ -217,7 +203,6 @@ func enumerateDevice(h DeviceHandle) Device {
 		}
 	}
 
-	// Memory modules
 	if mems, err := list(func(c *uint32, o *MemHandle) uint32 {
 		return fns.zesDeviceEnumMemoryModules(h, c, o)
 	}); err == nil {
@@ -240,10 +225,6 @@ func enumerateDevice(h DeviceHandle) Device {
 	return d
 }
 
-// ----- per-scrape readers -----
-
-// EnergyMicrojoules / TimestampMicros — accumulators for delta computation
-// in PromQL via rate(). Returns 0,0,false if the call fails.
 func (c *Client) Energy(p Power) (uint64, uint64, bool) {
 	var cnt powerEnergyCounter
 	cnt.Stype = stypePowerEnergyCounter
@@ -274,7 +255,6 @@ func (c *Client) FrequencyState(f Frequency) (state freqState, throttleNS uint64
 	return state, throttleNS, true
 }
 
-// FreqMHz / Actual / Request — convenience extractors.
 func (s freqState) ActualMHz() float64  { return s.Actual }
 func (s freqState) RequestMHz() float64 { return s.Request }
 func (s freqState) TDPMHz() float64     { return s.TDP }
@@ -297,7 +277,6 @@ func (c *Client) RASCategories(r RAS) ([maxRasCategoryCount]uint64, bool) {
 	return s.Category, true
 }
 
-// RasCategoryName exposes the categories[i] -> Prometheus label mapping.
 func RasCategoryName(i int) string {
 	if i < 0 || i >= maxRasCategoryCount {
 		return "unknown"

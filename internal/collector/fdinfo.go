@@ -14,25 +14,6 @@ import (
 	"github.com/sratabix/intel_gpu_exporter/internal/discovery"
 )
 
-// Fdinfo collects per-process DRM client usage via /proc/<pid>/fdinfo.
-//
-// Reference: Documentation/gpu/drm-usage-stats.rst
-//
-// Keys of interest:
-//
-//	drm-driver:    i915 | xe
-//	drm-pdev:      0000:00:02.0
-//	drm-client-id: <number>
-//	drm-engine-<name>:    <ns> ns       (cumulative)
-//	drm-total-<region>:   <bytes>
-//	drm-resident-<region>: <bytes>
-//	drm-shared-<region>:   <bytes>
-//
-// Cardinality control: a system with hundreds of GPU-using processes (game
-// engines, containers) would explode the active series count. We aggregate
-// per (driver, pci, pid, comm) and keep only the top-N processes by total
-// engine time. The dropped processes are reported via a single counter so the
-// fact that we're capping is observable.
 type Fdinfo struct {
 	procRoot string
 	topN     int
@@ -44,7 +25,6 @@ type Fdinfo struct {
 	dropped    *prometheus.Desc
 }
 
-// NewFdinfo constructs the collector. topN <= 0 disables capping.
 func NewFdinfo(procRoot string, topN int) *Fdinfo {
 	engineLabels := []string{"pci", "driver", "pid", "comm", "engine"}
 	memLabels := []string{"pci", "driver", "pid", "comm", "region"}
@@ -86,7 +66,7 @@ func (c *Fdinfo) Available(gpus []discovery.GPU) bool { return len(gpus) > 0 }
 type procKey struct{ pid, comm, driver, pci string }
 
 type procData struct {
-	engine map[string]uint64 // engine -> ns
+	engine map[string]uint64
 	total  map[string]uint64
 	res    map[string]uint64
 	shared map[string]uint64

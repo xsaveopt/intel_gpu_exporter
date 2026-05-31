@@ -11,17 +11,6 @@ import (
 	"github.com/sratabix/intel_gpu_exporter/internal/sysutil"
 )
 
-// I915Sysfs reads /sys/class/drm/cardN/{gt_*_freq_mhz,gt/gtN/rps_*_freq_mhz}.
-//
-// Both layouts coexist on modern kernels (>=6.0):
-//   - Legacy: cardN/gt_{cur,act,min,max,RP0,RPn}_freq_mhz       (tile 0 only)
-//   - Modern: cardN/gt/gtN/rps_{cur,act,min,max,RP0,RPn}_freq_mhz (per-GT)
-//
-// PVC (now xe-only) and any future multi-GT i915 platform need the per-GT
-// layout. We emit a synthetic `gt="0"` label for the legacy files so dashboards
-// see a consistent shape.
-//
-// Reference: drivers/gpu/drm/i915/gt/intel_gt_sysfs_pm.c
 type I915Sysfs struct {
 	gpus []discovery.GPU
 
@@ -74,7 +63,6 @@ func (c *I915Sysfs) Update(ctx context.Context, ch chan<- prometheus.Metric) err
 		}
 		base := LabelValues(g)
 
-		// Legacy card-root files (tile 0). Always emit if present.
 		legacyMap := map[*prometheus.Desc]string{
 			c.freqCur: "gt_cur_freq_mhz",
 			c.freqAct: "gt_act_freq_mhz",
@@ -84,8 +72,7 @@ func (c *I915Sysfs) Update(ctx context.Context, ch chan<- prometheus.Metric) err
 			c.freqRPn: "gt_RPn_freq_mhz",
 		}
 		gts := discovery.I915GTs(g)
-		// If the modern per-GT layout exists we let it drive the gt label; the
-		// legacy files alias tile 0 and would double-count.
+
 		if len(gts) == 0 {
 			for desc, file := range legacyMap {
 				if v, err := sysutil.ReadFloat64(filepath.Join(g.DRMPath, file)); err == nil {
@@ -95,7 +82,6 @@ func (c *I915Sysfs) Update(ctx context.Context, ch chan<- prometheus.Metric) err
 			}
 		}
 
-		// Modern per-GT layout.
 		for _, gt := range gts {
 			lv := append(append([]string{}, base...), strconv.Itoa(gt.Index))
 			emit := func(desc *prometheus.Desc, file string) {
@@ -112,7 +98,6 @@ func (c *I915Sysfs) Update(ctx context.Context, ch chan<- prometheus.Metric) err
 			emit(c.freqBst, "rps_boost_freq_mhz")
 		}
 
-		// RC6 residency lives at <drm>/power/rc6_residency_ms regardless of GT.
 		if v, err := sysutil.ReadFloat64(filepath.Join(g.DRMPath, "power", "rc6_residency_ms")); err == nil {
 			ch <- prometheus.MustNewConstMetric(c.rc6, prometheus.CounterValue, v, base...)
 		}

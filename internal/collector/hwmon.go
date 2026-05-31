@@ -11,9 +11,6 @@ import (
 	"github.com/sratabix/intel_gpu_exporter/internal/sysutil"
 )
 
-// Hwmon scrapes hwmon entries belonging to Intel GPU devices.
-// For i915 RAPL: energy1_input (uJ), power1_max (uW).
-// For xe: power1_max, power1_rated_max, power2_max, energy1_input, power1_max_interval, temp*_input, fan*_input.
 type Hwmon struct {
 	gpus []discovery.GPU
 
