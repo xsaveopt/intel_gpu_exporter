@@ -16,7 +16,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/sys/unix"
 
-	"github.com/sratabix/intel_gpu_exporter/internal/discovery"
+	"github.com/xsaveopt/intel_gpu_exporter/internal/discovery"
 )
 
 type PMU struct {

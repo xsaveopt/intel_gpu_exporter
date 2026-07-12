@@ -1,4 +1,4 @@
-module github.com/sratabix/intel_gpu_exporter
+module github.com/xsaveopt/intel_gpu_exporter
 
 go 1.26.3
 

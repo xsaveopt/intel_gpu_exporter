@@ -6,8 +6,8 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/sratabix/intel_gpu_exporter/internal/discovery"
-	"github.com/sratabix/intel_gpu_exporter/internal/sysutil"
+	"github.com/xsaveopt/intel_gpu_exporter/internal/discovery"
+	"github.com/xsaveopt/intel_gpu_exporter/internal/sysutil"
 )
 
 type Memory struct {

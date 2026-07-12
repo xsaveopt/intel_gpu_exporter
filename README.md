@@ -20,11 +20,11 @@ Deep notes on each source live in `docs/`: [kernel-feature-matrix](docs/kernel-f
 
 ## Installation
 
-Grab the Linux binary for your arch from the [releases page](https://github.com/sratabix/intel_gpu_exporter/releases/latest) and drop it in `/usr/local/bin`:
+Grab the Linux binary for your arch from the [releases page](https://github.com/xsaveopt/intel_gpu_exporter/releases/latest) and drop it in `/usr/local/bin`:
 
 ```sh
 sudo curl -fL -o /usr/local/bin/intel_gpu_exporter \
-  https://github.com/sratabix/intel_gpu_exporter/releases/latest/download/intel_gpu_exporter_linux_amd64
+  https://github.com/xsaveopt/intel_gpu_exporter/releases/latest/download/intel_gpu_exporter_linux_amd64
 sudo chmod +x /usr/local/bin/intel_gpu_exporter
 ```
 

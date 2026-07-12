@@ -14,10 +14,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	"github.com/sratabix/intel_gpu_exporter/internal/collector"
-	"github.com/sratabix/intel_gpu_exporter/internal/config"
-	"github.com/sratabix/intel_gpu_exporter/internal/discovery"
-	"github.com/sratabix/intel_gpu_exporter/internal/kernelinfo"
+	"github.com/xsaveopt/intel_gpu_exporter/internal/collector"
+	"github.com/xsaveopt/intel_gpu_exporter/internal/config"
+	"github.com/xsaveopt/intel_gpu_exporter/internal/discovery"
+	"github.com/xsaveopt/intel_gpu_exporter/internal/kernelinfo"
 )
 
 var version = "dev"

@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/sratabix/intel_gpu_exporter/internal/sysutil"
+	"github.com/xsaveopt/intel_gpu_exporter/internal/sysutil"
 )
 
 const intelVendor = "0x8086"

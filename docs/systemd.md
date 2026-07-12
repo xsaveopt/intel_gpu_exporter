@@ -19,7 +19,7 @@ Drop this at `/etc/systemd/system/intel_gpu_exporter.service`, adjusting `ExecSt
 ```ini
 [Unit]
 Description=Prometheus exporter for Intel GPU metrics
-Documentation=https://github.com/sratabix/intel_gpu_exporter
+Documentation=https://github.com/xsaveopt/intel_gpu_exporter
 After=network-online.target
 Wants=network-online.target
 
