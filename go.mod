@@ -3,7 +3,7 @@ module github.com/xsaveopt/intel_gpu_exporter
 go 1.26.4
 
 require (
-	github.com/ebitengine/purego v0.10.2
+	github.com/ebitengine/purego v0.11.0
 	github.com/prometheus/client_golang v1.24.1
 	golang.org/x/sys v0.47.0
 )
