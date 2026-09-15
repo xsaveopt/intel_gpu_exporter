@@ -1,26 +1,16 @@
 # intel_gpu_exporter
 
-**Prometheus exporter for Intel GPU telemetry on Linux. Covers every kernel surface — i915/xe sysfs, hwmon, DRM fdinfo, perf PMU, Level Zero sysman — and degrades gracefully on anything it can't reach.**
+A Prometheus exporter for Intel GPUs on Linux, reading telemetry from every kernel interface the i915 and xe drivers offer.
+At startup it walks /sys/class/drm, finds each Intel device and the driver bound to it, and enables whichever collectors that device can answer for.
+Frequencies and RC6 come from sysfs, power and temperature from hwmon, per-process engine usage from DRM fdinfo, and high-resolution counters from the i915 and xe perf PMUs.
+On i915 hosts that have intel_gpu_top installed it also runs intel_gpu_top -J as an additional source, and when the Level Zero loader is present it adds sysman data such as RAS error counts, memory bandwidth and engine group activity for Data Center GPUs like Flex and Max.
+The startup log includes a kernel feature matrix listing which of these interfaces the running kernel exposes, so a missing metric comes with a reason.
 
-## Contents
-
-- [How it works](#how-it-works)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Hardware coverage](#hardware-coverage)
-- [Metrics](#metrics)
-- [Permissions](#permissions)
-- [Flags](#flags)
-
-## How it works
-
-On startup the exporter walks `/sys/class/drm`, identifies every Intel PCI device, decides whether `i915` or `xe` is bound, and lights up the collectors that source can actually answer for. Each collector is independent: sysfs for frequencies and RC6, hwmon for power and temperature, DRM fdinfo for per-process engine usage, `perf_event_open` on the kernel-published i915/xe PMUs for the high-resolution counters, `intel_gpu_top -J` as a fallback when PMU access is locked down, and `libze_loader` via `dlopen` for Data Center GPUs (Flex, Max, Ponte Vecchio) — RAS counters, ECC errors, sub-engine activity, memory bandwidth. A kernel feature matrix runs at startup and logs which interfaces this kernel exposes vs which it doesn't, so missing metrics are explained rather than silently absent.
-
-Deep notes on each source live in `docs/`: [kernel-feature-matrix](docs/kernel-feature-matrix.md), [pmu](docs/pmu.md), [levelzero](docs/levelzero.md).
+Background on each source is in docs/kernel-feature-matrix.md, docs/pmu.md and docs/levelzero.md.
 
 ## Installation
 
-Grab the Linux binary for your arch from the [releases page](https://github.com/xsaveopt/intel_gpu_exporter/releases/latest) and drop it in `/usr/local/bin`:
+Each release carries static Linux binaries for amd64 and arm64 on the [releases page](https://github.com/xsaveopt/intel_gpu_exporter/releases/latest).
 
 ```sh
 sudo curl -fL -o /usr/local/bin/intel_gpu_exporter \
@@ -28,51 +18,41 @@ sudo curl -fL -o /usr/local/bin/intel_gpu_exporter \
 sudo chmod +x /usr/local/bin/intel_gpu_exporter
 ```
 
-For a long-running service: [docs/systemd.md](docs/systemd.md) has a reference unit, the service-user setup, and the lines to comment out if you're not using the PMU collector.
+To run it as a service, docs/systemd.md has a reference unit along with the service user it expects.
+Building from source with make build puts the binary in bin/.
 
 ## Configuration
 
-Everything is flag-driven on the systemd unit's `ExecStart=` line. Edit `/etc/systemd/system/intel_gpu_exporter.service` and `systemctl daemon-reload` to change behaviour — typical things to tweak are the listen address, the fdinfo top-N cap, and disabling the `intel_gpu_top` fallback if you've already got native PMU access. See [Flags](#flags) below.
+Everything is set with command-line flags, and intel_gpu_exporter -h lists each one with its default.
+Under systemd the flags go on the ExecStart= line of the unit.
 
-The Level Zero collector self-activates if `libze_loader.so.1` is on the standard loader path. To enable it on a Data Center GPU host, install the Intel oneAPI runtime (`apt install intel-level-zero-gpu libze1` on Debian/Ubuntu, `dnf install intel-level-zero` on Fedora/RHEL) and restart the service.
+The Level Zero collector turns itself on when libze_loader.so.1 is on the standard loader path.
+On Debian and Ubuntu that library comes from the intel-level-zero-gpu and libze1 packages, and on Fedora and RHEL from intel-level-zero, after which the exporter picks it up on its next start.
 
-A starter Grafana dashboard ships in [docs/grafana/intel-gpu.json](docs/grafana/intel-gpu.json) — see [docs/grafana.md](docs/grafana.md) for the panel breakdown.
-
-## Hardware coverage
-
-Every Intel GPU back to Gen 3 (i830) that binds to `i915` or `xe` is auto-discovered. Coverage table — iGPUs Sandy Bridge through Panther Lake, dGPUs DG1 / Arc Alchemist / Battlemage / Flex / Max — is in [docs/hardware-coverage.md](docs/hardware-coverage.md).
+A starter Grafana dashboard ships as docs/grafana/intel-gpu.json, and docs/grafana.md walks through its panels.
 
 ## Metrics
 
-All metric names start with `intel_gpu_`. Common labels on per-device series: `card`, `pci`, `device`, `driver`. Per-process series carry `pid`, `comm`, `engine`. PMU counters carry `pmu`, `event`, `family`, `engine`, `kind`. Level Zero metrics carry `pci`, `subdevice` and a metric-specific axis (sensor, domain, engine, module, category, …).
+Every metric name starts with intel_gpu_.
+Per-device series carry the card, pci, device and driver labels, while per-process fdinfo series carry pci, driver, pid, comm and engine.
+PMU counters are labelled with pmu, event, family, engine and kind, and Level Zero series with pci, subdevice and an axis specific to the metric, such as sensor, domain, engine or module.
+The full list of series and the kernel source behind each one is in docs/metrics.md.
 
-Full breakdown of every emitted series and the kernel source feeding it: [docs/metrics.md](docs/metrics.md).
+Any Intel GPU bound to i915 or xe is discovered automatically, from integrated graphics through the DG1, Arc, Flex and Max discrete cards, and docs/hardware-coverage.md shows what each generation exposes.
 
 ## Permissions
 
-| Collector       | Required                                                   |
+| Collector       | Requires                                                   |
 | --------------- | ---------------------------------------------------------- |
-| sysfs (i915/xe) | read of `/sys/class/drm` (world-readable by default)       |
-| hwmon           | read of `/sys/class/hwmon`                                 |
-| fdinfo          | `CAP_SYS_PTRACE` to read other users' fds                  |
-| `intel_gpu_top` | `CAP_PERFMON` or root (depends on kernel)                  |
-| PMU             | `CAP_PERFMON` and `perf_event_paranoid <= 1`               |
-| Level Zero      | access to `/dev/dri/renderD*` (usually the `render` group) |
+| sysfs (i915/xe) | read access to `/sys/class/drm`, world-readable by default |
+| hwmon           | read access to `/sys/class/hwmon`                          |
+| fdinfo          | `CAP_SYS_PTRACE` to read other users' file descriptors     |
+| `intel_gpu_top` | `CAP_PERFMON` or root, depending on the kernel             |
+| PMU             | `CAP_PERFMON` and `perf_event_paranoid` of 1 or lower      |
+| Level Zero      | access to `/dev/dri/renderD*`, usually the `render` group  |
 
-The reference unit in [docs/systemd.md](docs/systemd.md) runs as a dedicated `intel-gpu-exporter` user with `SupplementaryGroups=render video` (so it can open `/dev/dri/*` without being added to those groups globally), grants `CAP_PERFMON` for PMU access, and otherwise locks the process down (`NoNewPrivileges`, read-only `/sys` and `/proc`, no namespaces, syscall filter, cgroup `DeviceAllow=/dev/dri rw`). Drop `CAP_PERFMON` if you're not running PMU.
+The reference unit in docs/systemd.md runs as a dedicated intel-gpu-exporter user with the render and video groups added for that service only, grants CAP_PERFMON for the PMU collector, and applies systemd hardening with /sys and /proc mounted read-only.
 
-## Flags
+## License
 
-| Flag                             | Default         | Purpose                                                                |
-| -------------------------------- | --------------- | ---------------------------------------------------------------------- |
-| `--web.listen-address`           | `:9404`         | HTTP listen address (Prometheus default port for this exporter).       |
-| `--web.telemetry-path`           | `/metrics`      | Endpoint path.                                                         |
-| `--path.sysfs`                   | `/sys`          | sysfs mountpoint (override for chrooted scrapes).                      |
-| `--path.procfs`                  | `/proc`         | procfs mountpoint.                                                     |
-| `--scrape.timeout`               | `5s`            | Per-scrape deadline shared across all collectors.                      |
-| `--collector.fdinfo`             | `true`          | Per-process DRM fdinfo collector.                                      |
-| `--collector.fdinfo.top-n`       | `32`            | Cap process-level series at the top-N busiest PIDs (`0` disables cap). |
-| `--collector.pmu`                | `true`          | Native `perf_event_open` PMU collector.                                |
-| `--collector.intel-gpu-top`      | `true`          | `intel_gpu_top -J` fallback when PMU is locked down.                   |
-| `--collector.intel-gpu-top.path` | `intel_gpu_top` | Override the binary path.                                              |
-| `--log.level`                    | `info`          | `debug` / `info` / `warn` / `error`.                                   |
+GPL-2.0, see LICENSE.
