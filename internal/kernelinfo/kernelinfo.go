@@ -3,6 +3,7 @@ package kernelinfo
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -33,8 +34,10 @@ func V(major, minor int) Version { return Version{Major: major, Minor: minor} }
 
 var verRe = regexp.MustCompile(`^(\d+)\.(\d+)(?:\.(\d+))?`)
 
-func PerfParanoid() (int, string, error) {
-	b, err := os.ReadFile("/proc/sys/kernel/perf_event_paranoid")
+func PerfParanoid() (int, string, error) { return perfParanoid("/proc") }
+
+func perfParanoid(procRoot string) (int, string, error) {
+	b, err := os.ReadFile(filepath.Join(procRoot, "sys", "kernel", "perf_event_paranoid"))
 	if err != nil {
 		return 0, "", err
 	}
@@ -55,11 +58,13 @@ func PerfParanoid() (int, string, error) {
 	return v, desc, nil
 }
 
-func Detect() Version {
-	if b, err := os.ReadFile("/proc/sys/kernel/osrelease"); err == nil {
+func Detect() Version { return detect("/proc") }
+
+func detect(procRoot string) Version {
+	if b, err := os.ReadFile(filepath.Join(procRoot, "sys", "kernel", "osrelease")); err == nil {
 		return parse(strings.TrimSpace(string(b)))
 	}
-	if b, err := os.ReadFile("/proc/version"); err == nil {
+	if b, err := os.ReadFile(filepath.Join(procRoot, "version")); err == nil {
 		fields := strings.Fields(string(b))
 		if len(fields) >= 3 {
 			return parse(fields[2])

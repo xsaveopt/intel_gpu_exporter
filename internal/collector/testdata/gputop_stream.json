@@ -1,0 +1,94 @@
+[
+{
+	"period": {
+		"duration": 1000.4,
+		"unit": "ms"
+	},
+	"frequency": {
+		"requested": 350.000000,
+		"actual": 348.500000,
+		"unit": "MHz"
+	},
+	"interrupts": {
+		"count": 17.000000,
+		"unit": "irq/s"
+	},
+	"rc6": {
+		"value": 97.250000,
+		"unit": "%"
+	},
+	"power": {
+		"GPU": 0.050000,
+		"Package": 2.500000,
+		"unit": "W"
+	},
+	"imc-bandwidth": {
+		"reads": 197.500000,
+		"writes": 57.250000,
+		"unit": "MiB/s"
+	},
+	"engines": {
+		"Render/3D/0": {
+			"busy": 0.000000,
+			"sema": 0.000000,
+			"wait": 0.000000,
+			"unit": "%"
+		},
+		"Video/0": {
+			"busy": 1.500000,
+			"sema": 0.000000,
+			"wait": 0.250000,
+			"unit": "%"
+		}
+	}
+}
+,
+{
+	"period": {
+		"duration": 1000.1,
+		"unit": "ms"
+	},
+	"frequency": {
+		"requested": 1300.000000,
+		"actual": 1250.000000,
+		"unit": "MHz"
+	},
+	"interrupts": {
+		"count": 4096.000000,
+		"unit": "irq/s"
+	},
+	"rc6": {
+		"value": 12.500000,
+		"unit": "%"
+	},
+	"power": {
+		"GPU": 8.250000,
+		"Package": 15.500000,
+		"unit": "W"
+	},
+	"imc-bandwidth": {
+		"reads": 1024.000000,
+		"writes": 512.500000,
+		"unit": "MiB/s"
+	},
+	"engines": {
+		"Render/3D/0": {
+			"busy": 82.500000,
+			"sema": 1.250000,
+			"wait": 0.500000,
+			"unit": "%"
+		},
+		"Video/0": {
+			"busy": 3.000000,
+			"sema": 0.000000,
+			"wait": 0.000000,
+			"unit": "%"
+		},
+		"VideoEnhance/0": {
+			"busy": 0.000000,
+			"sema": 0.000000,
+			"wait": 0.000000,
+			"unit": "%"
+		}
+	}
+}
