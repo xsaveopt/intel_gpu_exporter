@@ -3,6 +3,7 @@ package collector
 import (
 	"context"
 	"log/slog"
+	"os"
 	"sync"
 	"time"
 
@@ -86,6 +87,18 @@ func (r *Registry) Collect(ch chan<- prometheus.Metric) {
 		}(s)
 	}
 	wg.Wait()
+}
+
+func (r *Registry) Healthy() bool {
+	if len(r.gpus) == 0 {
+		return true
+	}
+	for _, g := range r.gpus {
+		if _, err := os.Stat(g.DRMPath); err == nil {
+			return true
+		}
+	}
+	return false
 }
 
 func CommonLabels() []string {

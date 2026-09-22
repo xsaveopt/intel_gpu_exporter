@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -152,6 +153,40 @@ func TestRegistryTimesOutSlowSources(t *testing.T) {
 	}
 	if !slices.Equal(got, want) {
 		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+func TestRegistryHealthyWithoutGPUs(t *testing.T) {
+	r := NewRegistry(slog.New(slog.DiscardHandler), nil, time.Second)
+	if !r.Healthy() {
+		t.Error("Healthy() = false with no discovered GPUs, want true")
+	}
+}
+
+func TestRegistryHealthyWhenDRMPathExists(t *testing.T) {
+	r := NewRegistry(slog.New(slog.DiscardHandler), []discovery.GPU{{Card: "card0", DRMPath: t.TempDir()}}, time.Second)
+	if !r.Healthy() {
+		t.Error("Healthy() = false with a readable DRM path, want true")
+	}
+}
+
+func TestRegistryDegradedWhenDRMPathGone(t *testing.T) {
+	dir := t.TempDir()
+	missing := filepath.Join(dir, "card0")
+	r := NewRegistry(slog.New(slog.DiscardHandler), []discovery.GPU{{Card: "card0", DRMPath: missing}}, time.Second)
+	if r.Healthy() {
+		t.Error("Healthy() = true with the discovered GPU's sysfs path gone, want false")
+	}
+}
+
+func TestRegistryHealthyIfAnyGPUStillPresent(t *testing.T) {
+	gpus := []discovery.GPU{
+		{Card: "card0", DRMPath: filepath.Join(t.TempDir(), "gone")},
+		{Card: "card1", DRMPath: t.TempDir()},
+	}
+	r := NewRegistry(slog.New(slog.DiscardHandler), gpus, time.Second)
+	if !r.Healthy() {
+		t.Error("Healthy() = false with one of two GPUs still present, want true")
 	}
 }
 

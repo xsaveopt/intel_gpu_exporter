@@ -122,6 +122,15 @@ func main() {
 <body><h1>intel_gpu_exporter</h1>
 <p><a href="` + cfg.MetricsPath + `">metrics</a></p></body></html>`))
 	})
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		if !reg.Healthy() {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte("degraded"))
+			return
+		}
+		_, _ = w.Write([]byte("up"))
+	})
 
 	srv := &http.Server{
 		Addr:              cfg.ListenAddr,
