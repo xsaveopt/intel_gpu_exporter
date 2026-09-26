@@ -4,6 +4,7 @@ package levelzero
 
 import (
 	"errors"
+	"reflect"
 	"testing"
 	"unsafe"
 )
@@ -141,6 +142,20 @@ func TestEngineTypeName(t *testing.T) {
 		if got := engineTypeName(in); got != want {
 			t.Errorf("engineTypeName(%d) = %q, want %q", in, got, want)
 		}
+	}
+}
+
+func TestRasGetStateClearIsZeBool(t *testing.T) {
+	f, ok := reflect.TypeOf(fnTable{}).FieldByName("zesRasGetState")
+	if !ok {
+		t.Fatal("fnTable has no zesRasGetState field")
+	}
+	if got := f.Type.NumIn(); got != 3 {
+		t.Fatalf("zesRasGetState takes %d args, want 3", got)
+	}
+	arg := f.Type.In(1)
+	if arg.Kind() != reflect.Uint8 || arg.Size() != 1 {
+		t.Errorf("zesRasGetState clear is %s (%d bytes), want ze_bool_t uint8 (1 byte)", arg, arg.Size())
 	}
 }
 
@@ -524,7 +539,7 @@ func TestClientReadsSuccess(t *testing.T) {
 			s.ActiveTime, s.Timestamp = 333, 444
 			return zeResultSuccess
 		},
-		zesRasGetState: func(_ RasHandle, clear uint32, s *rasState) uint32 {
+		zesRasGetState: func(_ RasHandle, clear uint8, s *rasState) uint32 {
 			if clear != 0 {
 				return zeErrorUnknown
 			}
@@ -574,7 +589,7 @@ func TestClientReadsFailure(t *testing.T) {
 		zesTemperatureGetState:   func(TempHandle, *float64) uint32 { return zeErrorUnknown },
 		zesFrequencyGetState:     func(FreqHandle, *freqState) uint32 { return zeErrorUnknown },
 		zesEngineGetActivity:     func(EngineHandle, *engineStats) uint32 { return zeErrorUnknown },
-		zesRasGetState:           func(RasHandle, uint32, *rasState) uint32 { return zeErrorUnknown },
+		zesRasGetState:           func(RasHandle, uint8, *rasState) uint32 { return zeErrorUnknown },
 		zesMemoryGetState:        func(MemHandle, *memState) uint32 { return zeErrorUnknown },
 		zesMemoryGetBandwidth:    func(MemHandle, *memBandwidth) uint32 { return zeErrorUnknown },
 	})

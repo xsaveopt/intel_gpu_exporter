@@ -35,7 +35,7 @@ type fnTable struct {
 	zesEngineGetActivity            func(EngineHandle, *engineStats) uint32
 	zesDeviceEnumRasErrorSets       func(DeviceHandle, *uint32, *RasHandle) uint32
 	zesRasGetProperties             func(RasHandle, *rasProperties) uint32
-	zesRasGetState                  func(RasHandle, uint32, *rasState) uint32
+	zesRasGetState                  func(RasHandle, uint8, *rasState) uint32
 	zesDeviceEnumMemoryModules      func(DeviceHandle, *uint32, *MemHandle) uint32
 	zesMemoryGetProperties          func(MemHandle, *memProperties) uint32
 	zesMemoryGetState               func(MemHandle, *memState) uint32
