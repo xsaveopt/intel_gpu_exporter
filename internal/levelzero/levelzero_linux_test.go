@@ -119,18 +119,27 @@ func TestRasTypeName(t *testing.T) {
 
 func TestEngineTypeName(t *testing.T) {
 	cases := map[uint32]string{
-		0:      "all",
-		1 << 0: "other",
-		1 << 1: "compute",
-		1 << 2: "3d",
-		1 << 3: "media",
-		1 << 4: "dma",
-		1 << 5: "render",
-		1 << 6: "all",
+		0:          "all",
+		1:          "compute_all",
+		2:          "media_all",
+		3:          "copy_all",
+		4:          "compute_single",
+		5:          "render_single",
+		6:          "media_decode_single",
+		7:          "media_encode_single",
+		8:          "copy_single",
+		9:          "media_enhancement_single",
+		10:         "3d_single",
+		11:         "3d_render_compute_all",
+		12:         "render_all",
+		13:         "3d_all",
+		14:         "media_codec_single",
+		15:         "unknown",
+		0x7fffffff: "unknown",
 	}
 	for in, want := range cases {
 		if got := engineTypeName(in); got != want {
-			t.Errorf("engineTypeName(%#x) = %q, want %q", in, got, want)
+			t.Errorf("engineTypeName(%d) = %q, want %q", in, got, want)
 		}
 	}
 }
@@ -352,7 +361,7 @@ func TestEnumerateDevice(t *testing.T) {
 		zesEngineGetProperties: func(h EngineHandle, p *engineProperties) uint32 {
 			switch idx(h) {
 			case 0:
-				p.Type = 1 << 1
+				p.Type = 1
 			case 1:
 				p.Type = 0
 			default:
@@ -429,7 +438,7 @@ func TestEnumerateDevice(t *testing.T) {
 		t.Errorf("freq[1] = %+v", f)
 	}
 
-	wantEngine := []string{"compute", "all", "unknown"}
+	wantEngine := []string{"compute_all", "all", "unknown"}
 	if len(d.Engine) != len(wantEngine) {
 		t.Fatalf("engine = %+v", d.Engine)
 	}

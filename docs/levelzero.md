@@ -12,7 +12,7 @@ For Intel **Data Center GPU Flex, Max, and Ponte Vecchio** (and any other host w
 | `intel_gpu_zes_temperature_celsius`                    | `zesTemperatureGetState` (per named sensor: gpu, memory, board, voltage_regulator, …) |
 | `intel_gpu_zes_frequency_{actual,request,tdp}_mhz`     | `zesFrequencyGetState`            |
 | `intel_gpu_zes_frequency_throttle_nanoseconds_total`   | `zesFrequencyGetThrottleTime`     |
-| `intel_gpu_zes_engine_active_nanoseconds_total`        | `zesEngineGetActivity` per group (compute / render / media / dma / …) |
+| `intel_gpu_zes_engine_active_nanoseconds_total`        | `zesEngineGetActivity` per group (compute_all / render_all / media_all / copy_all / …) |
 | `intel_gpu_zes_ras_errors_total{type, category}`       | `zesRasGetState` — correctable / uncorrectable × {reset, programming, driver, compute, non_compute, cache, display} |
 | `intel_gpu_zes_memory_{size,free}_bytes`               | `zesMemoryGetState`               |
 | `intel_gpu_zes_memory_{read,write}_bytes_total`, `_max_bandwidth_bytes_per_second` | `zesMemoryGetBandwidth` |

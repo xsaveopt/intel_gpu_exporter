@@ -66,22 +66,29 @@ var memTypeNames = map[uint32]string{
 	18: "gddr6x", 19: "gddr7",
 }
 
-var engineTypeFlagNames = map[uint32]string{
-	1 << 0: "other",
-	1 << 1: "compute",
-	1 << 2: "3d",
-	1 << 3: "media",
-	1 << 4: "dma",
-	1 << 5: "render",
+var engineGroupNames = map[uint32]string{
+	0:  "all",
+	1:  "compute_all",
+	2:  "media_all",
+	3:  "copy_all",
+	4:  "compute_single",
+	5:  "render_single",
+	6:  "media_decode_single",
+	7:  "media_encode_single",
+	8:  "copy_single",
+	9:  "media_enhancement_single",
+	10: "3d_single",
+	11: "3d_render_compute_all",
+	12: "render_all",
+	13: "3d_all",
+	14: "media_codec_single",
 }
 
-func engineTypeName(flags uint32) string {
-	for bit, name := range engineTypeFlagNames {
-		if flags&bit != 0 {
-			return name
-		}
+func engineTypeName(group uint32) string {
+	if name, ok := engineGroupNames[group]; ok {
+		return name
 	}
-	return "all"
+	return "unknown"
 }
 
 type pciAddress struct {
