@@ -18,20 +18,16 @@ type (
 const zeResultSuccess uint32 = 0
 
 const (
-	stypePowerEnergyCounter uint32 = 0x2
-	stypeFreqState          uint32 = 0xb
-	stypeFreqThrottleTime   uint32 = 0xc
-	stypeFreqProperties     uint32 = 0xa
-	stypePowerProperties    uint32 = 0x1
-	stypeEngineStats        uint32 = 0x19
-	stypeEngineProperties   uint32 = 0x18
-	stypeMemState           uint32 = 0x1d
-	stypeMemBandwidth       uint32 = 0x1e
-	stypeMemProperties      uint32 = 0x1c
-	stypeRasState           uint32 = 0x20
-	stypeRasProperties      uint32 = 0x1f
-	stypeTempProperties     uint32 = 0x21
-	stypePciProperties      uint32 = 0x6
+	stypePciProperties    uint32 = 0x2
+	stypeEngineProperties uint32 = 0x5
+	stypeFreqProperties   uint32 = 0x9
+	stypeMemProperties    uint32 = 0xb
+	stypePowerProperties  uint32 = 0xd
+	stypeRasProperties    uint32 = 0xf
+	stypeTempProperties   uint32 = 0x14
+	stypeFreqState        uint32 = 0x1b
+	stypeMemState         uint32 = 0x1e
+	stypeRasState         uint32 = 0x22
 )
 
 const maxRasCategoryCount = 7
@@ -114,9 +110,6 @@ type pciProperties struct {
 }
 
 type powerEnergyCounter struct {
-	Stype     uint32
-	_         uint32
-	PNext     uintptr
 	Energy    uint64
 	Timestamp uint64
 }
@@ -134,7 +127,6 @@ type powerProperties struct {
 	DefaultLimit               int32
 	MinLimit                   int32
 	MaxLimit                   int32
-	_                          [4]byte
 }
 
 type tempProperties struct {
@@ -145,11 +137,12 @@ type tempProperties struct {
 	OnSubdevice             uint8
 	_                       [3]byte
 	SubdeviceID             uint32
-	MaxTemperature          int32
+	_                       uint32
+	MaxTemperature          float64
 	IsCriticalTempSupported uint8
-	_                       [3]byte
-	CriticalTempThreshold   int32
-	_                       [4]byte
+	IsThreshold1Supported   uint8
+	IsThreshold2Supported   uint8
+	_                       [5]byte
 }
 
 type freqState struct {
@@ -166,9 +159,6 @@ type freqState struct {
 }
 
 type freqThrottleTime struct {
-	Stype        uint32
-	_            uint32
-	PNext        uintptr
 	ThrottleTime uint64
 	Timestamp    uint64
 }
@@ -189,9 +179,6 @@ type freqProperties struct {
 }
 
 type engineStats struct {
-	Stype      uint32
-	_          uint32
-	PNext      uintptr
 	ActiveTime uint64
 	Timestamp  uint64
 }
@@ -236,9 +223,6 @@ type memState struct {
 }
 
 type memBandwidth struct {
-	Stype        uint32
-	_            uint32
-	PNext        uintptr
 	ReadCounter  uint64
 	WriteCounter uint64
 	MaxBandwidth uint64
@@ -253,6 +237,7 @@ type memProperties struct {
 	OnSubdevice  uint8
 	_            [3]byte
 	SubdeviceID  uint32
+	Location     uint32
 	PhysicalSize uint64
 	BusWidth     int32
 	NumChannels  int32

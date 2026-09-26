@@ -227,7 +227,6 @@ func enumerateDevice(h DeviceHandle) Device {
 
 func (c *Client) Energy(p Power) (uint64, uint64, bool) {
 	var cnt powerEnergyCounter
-	cnt.Stype = stypePowerEnergyCounter
 	if rc := fns.zesPowerGetEnergyCounter(p.Handle, &cnt); rc != zeResultSuccess {
 		return 0, 0, false
 	}
@@ -248,7 +247,6 @@ func (c *Client) FrequencyState(f Frequency) (state freqState, throttleNS uint64
 		return state, 0, false
 	}
 	var tt freqThrottleTime
-	tt.Stype = stypeFreqThrottleTime
 	if rc := fns.zesFrequencyGetThrottleTime(f.Handle, &tt); rc == zeResultSuccess {
 		throttleNS = tt.ThrottleTime
 	}
@@ -261,7 +259,6 @@ func (s freqState) TDPMHz() float64     { return s.TDP }
 
 func (c *Client) EngineActivity(e Engine) (active uint64, ts uint64, ok bool) {
 	var s engineStats
-	s.Stype = stypeEngineStats
 	if rc := fns.zesEngineGetActivity(e.Handle, &s); rc != zeResultSuccess {
 		return 0, 0, false
 	}
@@ -295,7 +292,6 @@ func (c *Client) MemoryState(m Memory) (size uint64, free uint64, ok bool) {
 
 func (c *Client) MemoryBandwidth(m Memory) (read, write, max, ts uint64, ok bool) {
 	var b memBandwidth
-	b.Stype = stypeMemBandwidth
 	if rc := fns.zesMemoryGetBandwidth(m.Handle, &b); rc != zeResultSuccess {
 		return 0, 0, 0, 0, false
 	}
